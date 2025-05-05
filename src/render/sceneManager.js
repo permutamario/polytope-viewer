@@ -39,7 +39,7 @@ function calculateCameraDistance(polytope, isMobile) {
   
   // Apply a padding factor to ensure the polytope fits in view
   // Use a larger factor for mobile to zoom out more
-  const paddingFactor = isMobile ? 2.8 : 2.2;
+  const paddingFactor = isMobile ? 4 : 2.5;
   
   // Return the adjusted distance
   return maxDistance * paddingFactor;
