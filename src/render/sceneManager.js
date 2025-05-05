@@ -47,10 +47,13 @@ export function setupScene(state) {
   // Subscribe to setting changes
   state.on('settingsChanged', ({ key, value }) => updateSettings(key, value, state));
 
-  // Load initial polytope
-  const initial = state.settings.currentPolytope || state.data.manifest[0].name;
-  // Set and trigger build via updateSettings
-  state.setSetting('currentPolytope', initial);
+    // Load initial polytope
+  const initial = state.data.geometries['Permutahedron'];
+    state.setSetting('currentPolytope', initial);
+
+    //Build Iniital Mesh
+    currentMesh = buildMesh(state.settings.currentPolytope,state);
+    scene.add(currentMesh);
 
   animate();
 }
@@ -75,18 +78,31 @@ function updateSettings(key, value, state) {
     case 'currentPolytope':
       if (currentMesh) {
         scene.remove(currentMesh);
-        currentMesh.geometry.dispose();
-        currentMesh.material.dispose();
+        //currentMesh.geometry.dispose(); Need to implement this cleanup
+        //currentMesh.material.dispose();
       }
-      currentMesh = buildMesh(state.data.geometries[value], state.settings);
+      currentMesh = buildMesh(state.settings.currentPolytope, state);
       scene.add(currentMesh);
       break;
 
-    case 'faceColor':
-      if (currentMesh && currentMesh.material) {
-        currentMesh.material.color.set(value);
+  case 'faceColor':
+      if (currentMesh && currentMesh.material && state.settings.colorScheme == 'Single Color') {
+          scene.remove(currentMesh);
+	  currentMesh = buildMesh(state.settings.currentPolytope,state);
+	  scene.add(currentMesh);
       }
       break;
+
+  case 'colorScheme':
+      if (currentMesh) {
+	  scene.remove(currentMesh)
+	  //currentMesh.geometry.dispose(); need to implement this cleanup
+	  //currentMesh.material.dispose();
+      }
+      currentMesh = buildMesh(state.settings.currentPolytope,state);
+      scene.add(currentMesh)
+      break;
+      
 
     case 'faceOpacity':
       if (currentMesh && currentMesh.material) {

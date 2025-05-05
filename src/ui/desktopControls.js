@@ -16,13 +16,14 @@ export function setupDesktopControls(state) {
     container.id = 'controls';
 
     // Polytope selector
-    const polyNames = state.data.manifest.map(m => m.name);
     const polySelect = createDropdown({
 	id: 'polytope-select',
 	label: 'Polytope',
-	options: polyNames,
-	value: state.settings.currentPolytope || polyNames[0],
-	onChange: v => state.setSetting('currentPolytope', v)
+	options: state.settings.polyNames,
+	value: state.settings.currentPolytope.name,
+	onChange: v => {
+	    state.setSetting('currentPolytope', state.data.geometries[v]);
+	}
     });
     container.appendChild(polySelect);
 
@@ -52,7 +53,11 @@ export function setupDesktopControls(state) {
 	id: 'face-color',
 	label: 'Face Color',
 	value: state.settings.faceColor,
-	onChange: v => state.setSetting('faceColor', v)
+	
+	onChange: v => {
+	    state.colorSchemes['Single Color'] = v;
+	    state.setSetting('faceColor', v);
+	}
     });
     container.appendChild(faceColor);
 
@@ -63,7 +68,9 @@ export function setupDesktopControls(state) {
 	label: 'Color Scheme',
 	options: colorNames,
 	value: state.settings.colorScheme,
-	onChange: v => state.setSetting('colorScheme',v)
+	onChange: v => {
+	    state.setSetting('colorScheme',v)
+	}
     });
     container.appendChild(schemeDropdown);
 					  
