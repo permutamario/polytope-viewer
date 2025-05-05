@@ -49,5 +49,5 @@ def build_permutahedron_B3():
     if not hasattr(poly, "vertices_list"):
         return None, "Error: construction did not yield a Polyhedron"
     
-    return poly, "Permutahedron B₃"
+    return poly, "Type B Permutahedron"
 

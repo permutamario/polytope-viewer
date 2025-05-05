@@ -170,5 +170,10 @@
       6
     ]
   ],
-  "_comment_coord_type": "float (forced)"
+  "_comment_coord_type": "float (forced)",
+  "center": [
+    2.4444444444444446,
+    2.4444444444444446,
+    2.4444444444444446
+  ]
 }

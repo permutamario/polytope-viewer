@@ -72,7 +72,7 @@ def build_multiplihedron():
         # - The polytope has 33 edges
         # - The polytope has 17 faces
         
-        return poly, "Multiplihedron 3D (M₃)"
+        return poly, "Multiplihedron"
     except Exception as e:
         return None, f"Error constructing multiplihedron: {str(e)}"
 

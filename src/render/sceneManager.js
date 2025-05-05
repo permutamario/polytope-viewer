@@ -1,15 +1,20 @@
-
 // src/render/sceneManager.js
 import * as THREE from '../../vendor/three.module.js';
-import { OrbitControls } from '../../vendor/examples/jsm/controls/OrbitControls.js';
+import CameraControls from '../../vendor/camera-controls/camera-controls.module.js';
 import { buildMesh } from './meshBuilder.js';
 import { detectPlatform } from '../core/utils.js';
 
-let renderer, scene, camera, controls;
+// Install camera-controls with THREE subset
+CameraControls.install({ THREE });
+
+let renderer, scene, camera, cameraControls;
+const clock = new THREE.Clock();
 let currentMesh;
+let autoRotate = false;
+const AUTO_ROTATE_SPEED = Math.PI / 8; // radians per second
 
 /**
- * Initialize and start the Three.js rendering pipeline.
+ * Initialize and start the Three.js rendering pipeline using camera-controls.
  */
 export function setupScene(state) {
   // Renderer
@@ -31,36 +36,58 @@ export function setupScene(state) {
   dir.position.set(5, 10, 7.5);
   scene.add(dir);
 
-  // Controls
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.autoRotate = state.settings.animation;
+  // CameraControls
+    cameraControls = new CameraControls(camera, renderer.domElement);
+    cameraControls.mouseButtons.right = CameraControls.ACTION.OFFSET;
+    cameraControls.touches.one        = CameraControls.ACTION.TOUCH_ROTATE;
+    cameraControls.touches.two        = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
+    cameraControls.touches.three      = CameraControls.ACTION.TOUCH_OFFSET;
+    cameraControls.enableDamping = true;
 
-  // Expose for export
+  // Expose for external use
   state.renderer = renderer;
   state.scene = scene;
   state.camera = camera;
+  state.cameraControls = cameraControls;
 
-  // Handle resize
+  // Handle window resize
   window.addEventListener('resize', onWindowResize);
 
-  // Subscribe to setting changes
+  // React to setting changes
   state.on('settingsChanged', ({ key, value }) => updateSettings(key, value, state));
 
-    // Load initial polytope
+  // Load and set initial polytope
   const initial = state.data.geometries['Permutahedron'];
-    state.setSetting('currentPolytope', initial);
+  state.setSetting('currentPolytope', initial);
 
-    //Build Iniital Mesh
-    currentMesh = buildMesh(state.settings.currentPolytope,state);
-    scene.add(currentMesh);
+  // Build and add mesh
+  currentMesh = buildMesh(state.settings.currentPolytope, state);
+  scene.add(currentMesh);
+
+  // Set the target to the polytope center (this is the orbit point)
+    const center = state.settings.currentPolytope.center;
+    cameraControls.setOrbitPoint(center[0], center[1], center[2], false);
+  
+  // Position the camera at a distance looking at the target
+  const distance = 5; // or whatever initial distance you want
+  const cameraPosition = new THREE.Vector3(center[0], center[1], center[2] + distance);
+  cameraControls.setPosition(cameraPosition.x, cameraPosition.y, cameraPosition.z, true);
 
   animate();
 }
 
 function animate() {
   requestAnimationFrame(animate);
-  controls.update();
+  const delta = clock.getDelta();
+
+  // Auto-rotate if enabled
+  if (autoRotate) {
+    // Use the rotate method of cameraControls to properly rotate around the target
+    cameraControls.rotate(-AUTO_ROTATE_SPEED * delta, 0, false);
+  }
+
+  // Update the controls - this is critical for making the rotation work
+    cameraControls.update(delta);
   renderer.render(scene, camera);
 }
 
@@ -76,33 +103,28 @@ function onWindowResize() {
 function updateSettings(key, value, state) {
   switch (key) {
     case 'currentPolytope':
-      if (currentMesh) {
+      if (currentMesh) scene.remove(currentMesh);
+      currentMesh = buildMesh(state.settings.currentPolytope, state);
+      scene.add(currentMesh);
+      
+      // Update the target/orbit point to the new polytope's center
+      const center = state.settings.currentPolytope.center;
+      cameraControls.setOrbitPoint(center[0], center[1], center[2], true);
+      break;
+
+    case 'faceColor':
+      if (currentMesh && state.settings.colorScheme === 'Single Color') {
         scene.remove(currentMesh);
-        //currentMesh.geometry.dispose(); Need to implement this cleanup
-        //currentMesh.material.dispose();
+        currentMesh = buildMesh(state.settings.currentPolytope, state);
+        scene.add(currentMesh);
       }
+      break;
+
+    case 'colorScheme':
+      if (currentMesh) scene.remove(currentMesh);
       currentMesh = buildMesh(state.settings.currentPolytope, state);
       scene.add(currentMesh);
       break;
-
-  case 'faceColor':
-      if (currentMesh && currentMesh.material && state.settings.colorScheme == 'Single Color') {
-          scene.remove(currentMesh);
-	  currentMesh = buildMesh(state.settings.currentPolytope,state);
-	  scene.add(currentMesh);
-      }
-      break;
-
-  case 'colorScheme':
-      if (currentMesh) {
-	  scene.remove(currentMesh)
-	  //currentMesh.geometry.dispose(); need to implement this cleanup
-	  //currentMesh.material.dispose();
-      }
-      currentMesh = buildMesh(state.settings.currentPolytope,state);
-      scene.add(currentMesh)
-      break;
-      
 
     case 'faceOpacity':
       if (currentMesh && currentMesh.material) {
@@ -113,7 +135,6 @@ function updateSettings(key, value, state) {
 
     case 'showEdges':
       if (currentMesh) {
-        // Remove existing edges
         currentMesh.children
           .filter(obj => obj.type === 'LineSegments')
           .forEach(obj => currentMesh.remove(obj));
@@ -126,7 +147,7 @@ function updateSettings(key, value, state) {
       break;
 
     case 'animation':
-      controls.autoRotate = value;
+      autoRotate = value;
       break;
 
     // Extend with other settings as needed
@@ -138,7 +159,7 @@ function updateSettings(key, value, state) {
  */
 export function disposeScene() {
   window.removeEventListener('resize', onWindowResize);
-  controls.dispose();
+  cameraControls.dispose();
   renderer.dispose();
   scene.traverse(obj => {
     if (obj.geometry) obj.geometry.dispose();

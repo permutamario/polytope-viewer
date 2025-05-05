@@ -42,6 +42,25 @@ def sage_polytope_to_json_data(polytope_sage, name):
             return None
     except Exception:
         return None
+    
+    # --- helper to compute center of mass ---
+    def compute_center_of_mass(poly, verts_list):
+        # Try Sage's built‑in centroid/center‑of‑mass if available
+        for method in ("center_of_mass", "centroid", "center"):
+            if hasattr(poly, method):
+                try:
+                    c = getattr(poly, method)()
+                    return [float(ci) for ci in c]
+                except Exception:
+                    break
+        # Fallback: average the provided vertex coordinates
+        n = len(verts_list)
+        dim = len(verts_list[0])
+        return [
+            sum(verts_list[j][i] for j in range(n)) / n
+            for i in range(dim)
+        ]
+
 
     try:
         verts = polytope_sage.vertices_list()
@@ -63,6 +82,8 @@ def sage_polytope_to_json_data(polytope_sage, name):
             ("faces", faces),
             ("_comment_coord_type", "float (forced)")
         ])
+        data["center"] = [float(i) for i in polytope_sage.center()] #Also has a center
+    
         return data
 
     except Exception:
@@ -94,7 +115,7 @@ def save_json_to_file(data, filename, output_dir):
          traceback.print_exc()
     return False
 
-def generate_polytope_list_manifest("", manifest_filename=MANIFEST_FILENAME):
+def generate_polytope_list_manifest(data_dir, manifest_filename=MANIFEST_FILENAME):
     """
     Scans the data directory for *.json files (excluding the manifest itself)
     and creates a manifest JSON file listing their filenames.
