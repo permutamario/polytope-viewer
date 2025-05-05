@@ -9,7 +9,7 @@ export async function loadData() {
 
     var loc = window.location.pathname;
     var dir = loc.substring(0, loc.lastIndexOf('/'));
-  const manifestResp = await fetch('../../polytopes/data/manifest.json');
+  const manifestResp = await fetch('././polytopes/data/manifest.json');
   if (!manifestResp.ok) {
     throw new Error('Failed to fetch polytope manifest');
   }
