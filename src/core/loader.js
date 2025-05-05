@@ -3,10 +3,10 @@ const emitter = new EventEmitter();
 
 /**
  * Load manifest and all polytope geometry JSON files.
- * Expects `/polytopes/manifest.json` to be a list of filenames
+ * Expects `../../polytopes/data/manifest.json` to be a list of filenames
  */
 export async function loadData() {
-  const manifestResp = await fetch('/polytopes/data/manifest.json');
+  const manifestResp = await fetch('../../polytopes/data/manifest.json');
   if (!manifestResp.ok) {
     throw new Error('Failed to fetch polytope manifest');
   }
@@ -22,7 +22,7 @@ export async function loadData() {
 
   await Promise.all(
     manifest.map(async ({ name, file }) => {
-      const url = `/polytopes/data/${file}`;
+      const url = `../../polytopes/data/${file}`;
 	const resp = await fetch(url);
       if (!resp.ok) {
         console.warn(`Warning: failed to load ${name} from ${file}`);
