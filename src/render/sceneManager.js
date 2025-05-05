@@ -43,6 +43,8 @@ export function setupScene(state) {
     cameraControls.touches.two        = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
     cameraControls.touches.three      = CameraControls.ACTION.TOUCH_OFFSET;
     cameraControls.enableDamping = true;
+    cameraControls.minPolarAngle = -Infinity;
+    cameraControls.maxPolarAngle = Infinity;
 
   // Expose for external use
   state.renderer = renderer;

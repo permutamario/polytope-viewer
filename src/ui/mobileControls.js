@@ -9,7 +9,7 @@ import {
 import { exportPNG, exportGIF } from '../render/exportManager.js';
 
 /**
- * Assemble and mount mobile header and footer controls.
+ * Assemble and mount mobile header and footer controls with improved layout.
  */
 export function setupMobileControls(state) {
   // Mark body as mobile
@@ -18,6 +18,10 @@ export function setupMobileControls(state) {
   // Fixed header with polytope selector
   const header = document.createElement('div');
   header.className = 'mobile-header';
+  
+  // Create a container for proper alignment of the dropdown and label
+  const dropdownContainer = document.createElement('div');
+  dropdownContainer.className = 'control';
   
   // Get polytope names from state
   const polyNames = state.settings.polyNames || Object.keys(state.data.geometries);
@@ -31,7 +35,10 @@ export function setupMobileControls(state) {
       state.setSetting('currentPolytope', state.data.geometries[v]);
     }
   });
-  header.appendChild(dropdown);
+  
+  // Add the dropdown to the container, then the container to the header
+  dropdownContainer.appendChild(dropdown);
+  header.appendChild(dropdownContainer);
   document.body.appendChild(header);
 
   // Options button in footer
@@ -46,36 +53,50 @@ export function setupMobileControls(state) {
   const menu = document.createElement('div');
   menu.className = 'mobile-options-menu hidden';
 
-  // Reuse controls from desktop
-  const animToggle = createCheckbox({
-    id: 'animation-toggle-mobile',
-    label: 'Rotate',
-    checked: state.settings.animation,
-    onChange: v => state.setSetting('animation', v)
-  });
-  menu.appendChild(animToggle);
+  // Create checkbox controls with right-aligned checkboxes
+  
+  // Rotation toggle with right-aligned checkbox
+  const rotateToggleContainer = document.createElement('div');
+  rotateToggleContainer.className = 'control checkbox-control';
+  const rotateLabel = document.createElement('label');
+  rotateLabel.htmlFor = 'animation-toggle-mobile';
+  rotateLabel.textContent = 'Rotate';
+  
+  const rotateInput = document.createElement('input');
+  rotateInput.type = 'checkbox';
+  rotateInput.id = 'animation-toggle-mobile';
+  rotateInput.checked = state.settings.animation;
+  rotateInput.addEventListener('change', e => state.setSetting('animation', e.target.checked));
+  
+  rotateToggleContainer.appendChild(rotateLabel);
+  rotateToggleContainer.appendChild(rotateInput);
+  menu.appendChild(rotateToggleContainer);
 
   // Face opacity slider
-  menu.appendChild(createSlider({
+  const opacitySlider = createSlider({
     id: 'face-opacity-mobile',
-    label: 'Opacity',
+    label: 'Face Opacity',
     min: 0,
     max: 1,
     step: 0.01,
     value: state.settings.faceOpacity,
     onChange: v => state.setSetting('faceOpacity', v)
-  }));
+  });
+  menu.appendChild(opacitySlider);
 
-  // Face color picker
-  menu.appendChild(createColorPicker({
+  // Face color picker - Hidden in UI but still functional for state
+  // We'll create it but not add it to the menu
+  const colorPicker = createColorPicker({
     id: 'face-color-mobile',
-    label: 'Color',
+    label: 'Face Color',
     value: state.settings.faceColor,
     onChange: v => {
       state.colorSchemes['Single Color'] = v;
       state.setSetting('faceColor', v);
     }
-  }));
+  });
+  colorPicker.id = 'face-color-mobile-control';
+  // Note: We're not appending it to the menu
   
   // Add color scheme dropdown that's present in desktop version
   const colorNames = Object.keys(state.colorSchemes);
@@ -90,26 +111,45 @@ export function setupMobileControls(state) {
   });
   menu.appendChild(schemeDropdown);
 
-  // Show edges toggle
-  menu.appendChild(createCheckbox({
-    id: 'edge-toggle-mobile',
-    label: 'Edges',
-    checked: state.settings.showEdges,
-    onChange: v => state.setSetting('showEdges', v)
-  }));
+  // Show edges toggle with right-aligned checkbox
+  const edgesToggleContainer = document.createElement('div');
+  edgesToggleContainer.className = 'control checkbox-control';
+  const edgesLabel = document.createElement('label');
+  edgesLabel.htmlFor = 'edge-toggle-mobile';
+  edgesLabel.textContent = 'Show Edges';
+  
+  const edgesInput = document.createElement('input');
+  edgesInput.type = 'checkbox';
+  edgesInput.id = 'edge-toggle-mobile';
+  edgesInput.checked = state.settings.showEdges;
+  edgesInput.addEventListener('change', e => state.setSetting('showEdges', e.target.checked));
+  
+  edgesToggleContainer.appendChild(edgesLabel);
+  edgesToggleContainer.appendChild(edgesInput);
+  menu.appendChild(edgesToggleContainer);
 
-  // Export buttons
-  menu.appendChild(createButton({
+  // Create container for export buttons to organize them in a row
+  const exportButtonsContainer = document.createElement('div');
+  exportButtonsContainer.className = 'export-buttons';
+  
+  // Export PNG button
+  const pngBtn = createButton({
     id: 'export-png-mobile',
-    label: 'PNG',
+    label: 'Export PNG',
     onClick: () => exportPNG(state.renderer, state.scene, state.camera)
-  }));
+  });
+  exportButtonsContainer.appendChild(pngBtn);
 
-  menu.appendChild(createButton({
+  // Export GIF button
+  const gifBtn = createButton({
     id: 'export-gif-mobile',
-    label: 'GIF',
+    label: 'Export GIF',
     onClick: () => exportGIF(state.renderer, state.scene, state.camera)
-  }));
+  });
+  exportButtonsContainer.appendChild(gifBtn);
+  
+  // Add the export buttons container to the menu
+  menu.appendChild(exportButtonsContainer);
   
   document.body.appendChild(menu);
 }

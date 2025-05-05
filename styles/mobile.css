@@ -1,29 +1,62 @@
 /* styles/mobile.css */
-/* MOBILE-ONLY STYLES */
+/* MOBILE-ONLY STYLES - PROFESSIONAL ENHANCEMENT WITH FIXED SLIDER */
 
 /* Apply when body has .mobile-device */
 body.mobile-device {
   margin: 0;
-  padding-top: 60px;
+  padding-top: 50px;
   overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  background-color: #f8f9fa;
 }
 
-/* Fixed header */
+/* Fixed header with improved styling */
 .mobile-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   height: 50px;
-  background-color: #4285f4;
+  background-color: #1a2433;
+  color: #fff;
+  z-index: 1000;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  
   display: flex;
   align-items: center;
   padding: 0 12px;
-  color: #fff;
-  z-index: 1000;
 }
 
-/* Viewer canvas adjustment */
+.mobile-header .control {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.mobile-header label {
+  font-size: 16px;
+  font-weight: 500;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+.mobile-header select {
+  flex: 1;
+  background-color: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: white;
+  padding: 6px 10px;
+  font-size: 15px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px;
+  padding-right: 28px;
+}
+
 body.mobile-device #viewer-canvas {
   position: absolute;
   top: 50px;
@@ -32,54 +65,245 @@ body.mobile-device #viewer-canvas {
   bottom: 0;
   width: 100%;
   height: calc(100vh - 50px);
+  touch-action: pan-y pinch-zoom;
 }
 
-/* Options button at bottom center */
 #mobile-options-button {
   position: fixed;
-  bottom: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 18px;
-  background-color: #4285f4;
+  padding: 12px 24px;
+  background-color: #1a2433;
   color: #fff;
   border: none;
-  border-radius: 4px;
-  font-size: 16px;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
   z-index: 1000;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+  transition: background-color 0.2s, transform 0.2s;
 }
 
-/* Options menu panel */
+#mobile-options-button:active {
+  background-color: #0d141d;
+  transform: translateX(-50%) scale(0.96);
+}
+
 .mobile-options-menu {
   position: fixed;
   bottom: 80px;
-  left: 12px;
-  right: 12px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  padding: 16px;
+  left: 16px;
+  right: 16px;
+  background: #e0e3e9; /* Even darker panel background */
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+  padding: 20px;
   z-index: 1000;
+  max-height: 70vh;
+  overflow-y: auto;
+  
+  transform-origin: bottom center;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-/* Loader & error messages */
-.mobile-loader,
-.mobile-error {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 10px;
+.mobile-options-menu.hidden {
+  transform: translateY(30px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mobile-options-menu .control {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.mobile-options-menu .control:last-child {
+  margin-bottom: 10px;
+}
+
+.mobile-options-menu .checkbox-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-options-menu .checkbox-control label {
+  margin-bottom: 0;
+  order: 1;
+}
+
+.mobile-options-menu .checkbox-control input[type="checkbox"] {
+  order: 2;
+  margin-right: 0;
+}
+
+.mobile-options-menu label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 15px;
+  color: #1a2433;
+}
+
+/* COMPLETELY OVERHAULED SLIDER STYLES FOR CROSS-BROWSER COMPATIBILITY */
+
+/* Slider container styling */
+.mobile-options-menu .control input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 40px; /* Taller for touch */
+  margin: 0;
+  padding: 0 0 10px 0;
+  background-color: transparent; /* Transparent background */
+  outline: none;
+}
+
+/* Slider track - Webkit browsers */
+.mobile-options-menu .control input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px; /* Thicker track */
+  background: #4285f4; /* Very visible blue */
   border-radius: 4px;
-  font-weight: bold;
-  color: #fff;
-  z-index: 1000;
+  border: 1px solid #3367d6; /* Border for extra definition */
+  cursor: pointer;
 }
-.mobile-loader {
-  top: 50%;
-  background: rgba(0,0,0,0.4);
+
+/* Slider thumb - Webkit browsers */
+.mobile-options-menu .control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 24px; /* Larger thumb */
+  width: 24px; /* Larger thumb */
+  border-radius: 50%;
+  background: #ffffff; /* White thumb */
+  border: 2px solid #3367d6; /* Blue border */
+  margin-top: -9px; /* Center on track */
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Shadow for depth */
 }
-.mobile-error {
-  bottom: 16px;
-  background: rgba(244,67,54,0.9);
+
+/* Slider track - Firefox */
+.mobile-options-menu .control input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  background: #4285f4;
+  border-radius: 4px;
+  border: 1px solid #3367d6;
+  cursor: pointer;
+}
+
+/* Slider thumb - Firefox */
+.mobile-options-menu .control input[type="range"]::-moz-range-thumb {
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #3367d6;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Slider track - IE/Edge */
+.mobile-options-menu .control input[type="range"]::-ms-track {
+  width: 100%;
+  height: 8px;
+  background: transparent;
+  border-color: transparent;
+  border-width: 16px 0;
+  color: transparent;
+  cursor: pointer;
+}
+
+/* Slider thumb - IE/Edge */
+.mobile-options-menu .control input[type="range"]::-ms-thumb {
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #3367d6;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  margin-top: 0;
+}
+
+/* Slider fill - IE/Edge */
+.mobile-options-menu .control input[type="range"]::-ms-fill-lower {
+  background: #4285f4;
+  border-radius: 4px;
+}
+
+.mobile-options-menu .control input[type="range"]::-ms-fill-upper {
+  background: #b0b8c4;
+  border-radius: 4px;
+}
+
+/* Active/focus states for enhanced accessibility */
+.mobile-options-menu .control input[type="range"]:focus::-webkit-slider-runnable-track {
+  background: #5294ff;
+}
+
+.mobile-options-menu .control input[type="range"]:active::-webkit-slider-thumb,
+.mobile-options-menu .control input[type="range"]:focus::-webkit-slider-thumb {
+  background: #f2f2f2;
+  border-color: #1a73e8;
+}
+
+/* End of slider styles */
+
+.mobile-options-menu input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+  accent-color: #1a2433;
+}
+
+/* Hide the color picker control */
+#face-color-mobile-control {
+  display: none;
+}
+
+.mobile-options-menu select {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border: 1px solid #ccd2db;
+  border-radius: 6px;
+  margin: 8px 0;
+  background-color: #fafbfd;
+  color: #1a2433;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231a2433%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px;
+  padding-right: 28px;
+}
+
+.mobile-options-menu button {
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1a2433;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.mobile-options-menu button:active {
+  background-color: #0d141d;
+}
+
+.export-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.export-buttons button {
+  flex: 1;
 }
