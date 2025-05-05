@@ -18,7 +18,7 @@ export function initializeState(data) {
 
     // UI & rendering settings with sensible defaults
     settings: {
-      animation: true,           // autorotate
+      animation: false,           // autorotate
       colorScheme: 'Single Color',
       faceColor: '#156289',      // fallback face color
       faceOpacity: 0.8,
