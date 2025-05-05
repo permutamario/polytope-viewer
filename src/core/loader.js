@@ -25,7 +25,7 @@ export async function loadData() {
 
   await Promise.all(
     manifest.map(async ({ name, file }) => {
-      const url = `../../polytopes/data/${file}`;
+      const url = `././polytopes/data/${file}`;
 	const resp = await fetch(url);
       if (!resp.ok) {
         console.warn(`Warning: failed to load ${name} from ${file}`);
