@@ -6,6 +6,9 @@ const emitter = new EventEmitter();
  * Expects `../../polytopes/data/manifest.json` to be a list of filenames
  */
 export async function loadData() {
+
+    var loc = window.location.pathname;
+    var dir = loc.substring(0, loc.lastIndexOf('/'));
   const manifestResp = await fetch('../../polytopes/data/manifest.json');
   if (!manifestResp.ok) {
     throw new Error('Failed to fetch polytope manifest');
