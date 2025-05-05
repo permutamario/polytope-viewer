@@ -14,6 +14,38 @@ let autoRotate = false;
 const AUTO_ROTATE_SPEED = Math.PI / 8; // radians per second
 
 /**
+ * Calculate appropriate camera distance based on polytope size
+ * @param {Object} polytope - The polytope object with vertices
+ * @param {Boolean} isMobile - Whether we're on mobile or desktop
+ * @returns {Number} - The recommended camera distance
+ */
+function calculateCameraDistance(polytope, isMobile) {
+  // If no vertices, return a default distance
+  if (!polytope.vertices || polytope.vertices.length === 0) {
+    return 5;
+  }
+  
+  // Find the maximum distance from center to any vertex
+  let maxDistance = 0;
+  const center = polytope.center || [0, 0, 0];
+  
+  for (const vertex of polytope.vertices) {
+    const dx = vertex[0] - center[0];
+    const dy = vertex[1] - center[1];
+    const dz = vertex[2] - center[2];
+    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    maxDistance = Math.max(maxDistance, distance);
+  }
+  
+  // Apply a padding factor to ensure the polytope fits in view
+  // Use a larger factor for mobile to zoom out more
+  const paddingFactor = isMobile ? 2.8 : 2.2;
+  
+  // Return the adjusted distance
+  return maxDistance * paddingFactor;
+}
+
+/**
  * Initialize and start the Three.js rendering pipeline using camera-controls.
  */
 export function setupScene(state) {
@@ -37,14 +69,14 @@ export function setupScene(state) {
   scene.add(dir);
 
   // CameraControls
-    cameraControls = new CameraControls(camera, renderer.domElement);
-    cameraControls.mouseButtons.right = CameraControls.ACTION.OFFSET;
-    cameraControls.touches.one        = CameraControls.ACTION.TOUCH_ROTATE;
-    cameraControls.touches.two        = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
-    cameraControls.touches.three      = CameraControls.ACTION.TOUCH_OFFSET;
-    cameraControls.enableDamping = true;
-    cameraControls.minPolarAngle = -Infinity;
-    cameraControls.maxPolarAngle = Infinity;
+  cameraControls = new CameraControls(camera, renderer.domElement);
+  cameraControls.mouseButtons.right = CameraControls.ACTION.OFFSET;
+  cameraControls.touches.one        = CameraControls.ACTION.TOUCH_ROTATE;
+  cameraControls.touches.two        = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
+  cameraControls.touches.three      = CameraControls.ACTION.TOUCH_OFFSET;
+  cameraControls.enableDamping = true;
+  cameraControls.minPolarAngle = -Infinity;
+  cameraControls.maxPolarAngle = Infinity;
 
   // Expose for external use
   state.renderer = renderer;
@@ -67,12 +99,12 @@ export function setupScene(state) {
   scene.add(currentMesh);
 
   // Set the target to the polytope center (this is the orbit point)
-    const center = state.settings.currentPolytope.center;
-    cameraControls.setOrbitPoint(center[0], center[1], center[2], false);
+  const center = state.settings.currentPolytope.center;
+  cameraControls.setOrbitPoint(center[0], center[1], center[2], false);
   
-  // Position the camera at a distance looking at the target
-  const distance = 5; // or whatever initial distance you want
-  const cameraPosition = new THREE.Vector3(center[0], center[1], center[2] + distance);
+  // Calculate and set appropriate initial camera distance
+  const initialDistance = calculateCameraDistance(state.settings.currentPolytope, detectPlatform());
+  const cameraPosition = new THREE.Vector3(center[0], center[1], center[2] + initialDistance);
   cameraControls.setPosition(cameraPosition.x, cameraPosition.y, cameraPosition.z, true);
 
   animate();
@@ -89,7 +121,7 @@ function animate() {
   }
 
   // Update the controls - this is critical for making the rotation work
-    cameraControls.update(delta);
+  cameraControls.update(delta);
   renderer.render(scene, camera);
 }
 
@@ -112,6 +144,23 @@ function updateSettings(key, value, state) {
       // Update the target/orbit point to the new polytope's center
       const center = state.settings.currentPolytope.center;
       cameraControls.setOrbitPoint(center[0], center[1], center[2], true);
+      
+      // Calculate appropriate camera distance based on polytope size
+      const isMobile = detectPlatform();
+      const distance = calculateCameraDistance(state.settings.currentPolytope, isMobile);
+      
+      // Position the camera at the calculated distance along the z-axis
+      const cameraPosition = new THREE.Vector3(
+        center[0], 
+        center[1], 
+        center[2] + distance
+      );
+      cameraControls.setPosition(
+        cameraPosition.x, 
+        cameraPosition.y, 
+        cameraPosition.z, 
+        true
+      );
       break;
 
     case 'faceColor':
