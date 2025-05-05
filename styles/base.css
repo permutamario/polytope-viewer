@@ -1,0 +1,35 @@
+/* styles/base.css */
+/* global resets, variables, utility classes */
+
+/* Reset margins and padding */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Base typography */nbody {
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+/* Utility classes */
+.hidden {
+  display: none !important;
+}
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Link styles */
+a {
+  color: #4285f4;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
