@@ -19,7 +19,7 @@ export function initializeState(data) {
     // UI & rendering settings with sensible defaults
     settings: {
       animation: false,           // autorotate
-      colorScheme: 'Colorblind-Friendly',
+      colorScheme: 'Rainbow',
       faceColor: '#156289',      // fallback face color
       faceOpacity: 0.8,
       vertexEmphasis: false,

@@ -201,4 +201,3 @@ function showNotification(message, duration = 3000) {
       document.body.removeChild(notification);
     }, 500);
   }, duration);
-}

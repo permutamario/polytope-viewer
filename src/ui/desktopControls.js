@@ -96,9 +96,57 @@ export function setupDesktopControls(state) {
     const gifBtn = createButton({
 	id: 'export-gif',
 	label: 'Export GIF',
-	onClick: () => exportGIF(state.renderer, state.scene, state.camera)
+      onClick: () => {
+	  //exportGIF(state.renderer, state.scene, state.camera)
+	  showNotification("Mario has not enabled me yet 😢");
+      }
     });
     container.appendChild(gifBtn);
 
     document.body.appendChild(container);
+}
+
+
+/**
+ * Shows a temporary notification box
+ * @param {string} message - The message to display
+ * @param {number} duration - How long to show the notification in ms
+ */
+function showNotification(message, duration = 3000) {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  notification.textContent = message;
+  
+  // Style the notification
+  Object.assign(notification.style, {
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    color: 'white',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    zIndex: '1000',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+    textAlign: 'center',
+    fontFamily: 'sans-serif',
+    fontSize: '16px',
+    maxWidth: '80%'
+  });
+  
+  // Add to document
+  document.body.appendChild(notification);
+  
+  // Remove after duration
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transition = 'opacity 0.5s ease';
+    
+    // Remove from DOM after fade out
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 500);
+  }, duration);
 }
