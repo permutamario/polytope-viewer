@@ -1,81 +1,67 @@
-// src/render/meshBuilder.js
-import * as THREE from '../../vendor/three.module.js';
-import { detectPlatform } from '../core/utils.js';
+// File: src/render/meshBuilder.js
 
 /**
- * Build a THREE.Mesh (and optional edges) from polytope JSON data.
- * `data` should have `vertices: [[x,y,z], ...]` and `faces: [[i,j,k,...], ...].
- * `settings.colorSchemeColors` may be an array of hex colors to apply per original face.
+ * Build a THREE.Mesh for a given Polytope instance.
+ * Uses the polytope.triangulate() method to generate triangles.
+ * @param {import('../../polytopes/Polytope.js').Polytope} polytope
+ * @param {THREE.Material} [material]
+ * @returns {THREE.Mesh}
  */
-export function buildMesh(polytope, state) {
-    const settings = state.settings;
-    const vertices = polytope.vertices;
-    const faces = polytope.faces;
 
+import * as THREE from '../../vendor/three.module.js';
 
-  // --- Geometry setup ---
-  const geom = new THREE.BufferGeometry();
-  const flatVerts = vertices.flat();
-  geom.setAttribute('position', new THREE.Float32BufferAttribute(flatVerts, 3));
-
-  // Triangulate original faces into index array and groups
-  const indices = [];
-  const groups = [];
-  let idxOffset = 0;
-  faces.forEach((face, fi) => {
-    // triangulate face as fan
-    let triCount = 0;
-    for (let i = 1; i < face.length - 1; i++) {
-      const a = face[0], b = face[i], c = face[i+1];
-      indices.push(a, b, c);
-      triCount++;
-    }
-    if (triCount > 0) {
-      groups.push({ start: idxOffset, count: triCount * 3, materialIndex: groups.length });
-      idxOffset += triCount * 3;
-    }
-  });
-  geom.setIndex(indices);
-  geom.clearGroups();
-  groups.forEach(g => geom.addGroup(g.start, g.count, g.materialIndex));
-  geom.computeVertexNormals();
-
-  // --- Materials per face-group ---
-  const defaultOpacity = settings.faceOpacity ?? 0.8;
-  const isTransparent = defaultOpacity < 1;
-  const materialType = detectPlatform()
-    ? THREE.MeshLambertMaterial
-    : THREE.MeshStandardMaterial;
-
-  // Determine color array for faces
-  const schemeColors = state.colorSchemes[settings.colorScheme];
-
-  const faceMaterials = groups.map((_, gi) => {
-    const colorHex = schemeColors[gi % schemeColors.length];
-    const matOpts = {
-      color: colorHex,
-      transparent: isTransparent,
-      opacity: defaultOpacity,
-      side: THREE.DoubleSide,
-      depthWrite: defaultOpacity >= 0.95
-    };
-    // PBR props if standard
-    if (materialType === THREE.MeshStandardMaterial) {
-      matOpts.roughness = 0.5;
-      matOpts.metalness = 0.1;
-    }
-    return new materialType(matOpts);
+export function buildMesh(polytope, material) {
+  // Default material if none provided
+  const meshMaterial = material || new THREE.MeshStandardMaterial({
+    color: 0xaaaaaa,
+    flatShading: true,
   });
 
-  const mesh = new THREE.Mesh(geom, faceMaterials);
+  const geometry = new THREE.BufferGeometry();
 
-  // --- Optional edges ---
-  if (settings.showEdges) {
-    const edgesGeom = new THREE.EdgesGeometry(geom);
-    const edgesMat  = new THREE.LineBasicMaterial({ color: 0x000000 });
-    const edgeLines = new THREE.LineSegments(edgesGeom, edgesMat);
-    mesh.add(edgeLines);
+    // Flatten vertex positions into Float32Array
+    console.log(polytope);
+    console.log(polytope.vertices);
+  const positions = new Float32Array(polytope.vertices.flat());
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  // Use the triangulate() helper to get triangles
+  const triangles = polytope.triangulate(); // Array<[i0, i1, i2]>
+  const indices = Uint32Array.from(triangles.flat());
+  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+
+  // Compute normals for lighting
+  geometry.computeVertexNormals();
+
+  // Create the mesh
+  return new THREE.Mesh(geometry, meshMaterial);
+}
+
+/**
+ * Build a THREE.LineSegments object for edges of the polytope.
+ * @param {import('../../polytopes/Polytope.js').Polytope} polytope
+ * @param {THREE.LineBasicMaterial} [lineMaterial]
+ * @returns {THREE.LineSegments}
+ */
+export function buildEdgeLines(polytope, lineMaterial) {
+  const edgeMat = lineMaterial || new THREE.LineBasicMaterial({
+    color: 0x000000,
+    linewidth: 1,
+  });
+
+  // Each edge contributes two vertices (start and end)
+  const points = [];
+  for (const [i, j] of polytope.edges) {
+    const v1 = polytope.vertices[i];
+    const v2 = polytope.vertices[j];
+    points.push(...v1, ...v2);
   }
 
-  return mesh;
+  const edgeGeometry = new THREE.BufferGeometry();
+  edgeGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(points, 3)
+  );
+
+  return new THREE.LineSegments(edgeGeometry, edgeMat);
 }

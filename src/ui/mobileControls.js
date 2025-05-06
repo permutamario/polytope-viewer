@@ -24,15 +24,15 @@ export function setupMobileControls(state) {
   dropdownContainer.className = 'control';
   
   // Get polytope names from state
-  const polyNames = state.settings.polyNames || Object.keys(state.data.geometries);
+  const polyNames = state.polyNames;
   
   const dropdown = createDropdown({
     id: 'polytope-select-mobile',
     label: 'Polytope',
     options: polyNames,
-    value: state.settings.currentPolytope.name,
+    value: state.currentPolytope.name,
     onChange: v => {
-      state.setSetting('currentPolytope', state.data.geometries[v]);
+      state.setSetting(v);
     }
   });
   

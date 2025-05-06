@@ -27,13 +27,12 @@ polytope-viewer/
 │       ├── sceneManager.js
 │       ├── meshBuilder.js
 │       └── exportManager.js
-├── vendor/                ← Third‑party libs (Three.js, Camera-Control, GIF.js)
-└── polytopes/             ← Geometry data and manifest
-    ├─
-    └── data/
-        ├── cube.json
-	|---Manifest.json
-        └── ...
+├── vendor/                ← Third‑party libs (Three.js, Camera-Control, GIF.js, QuickHull3D)
+└── polytopes/             ← Geometry builders and logic
+    ├── build_functions/   ← JS scripts that create Polytope objects
+    │   └── build_tetrahedron.js
+    ├── manifest.json      ← Lists available polytopes
+    └── Polytope.js        ← Main Polytope class definition
 ```
 
 ---
@@ -49,7 +48,7 @@ polytope-viewer/
 * **src/index.js**:
 
   1. Detects platform (`core/utils.detectPlatform`).
-  2. Loads polytope manifest + geometries (`core/loader.loadData`).
+  2. Loads polytope manifest (`core/loader.loadData`).
   3. Initializes global state (`core/stateManager.initializeState`).
   4. Sets default polytope in state (`state.setSetting('currentPolytope', …)`).
   5. Builds UI (`ui/desktopControls` or `ui/mobileControls`).
@@ -67,7 +66,7 @@ polytope-viewer/
 
 * **loader.js**:
 
-  * `loadData()`: Fetches `/polytopes/manifest.json` and each JSON geometry.
+  * `loadData()`: Fetches `/polytopes/manifest.json` and dynamically imports builder modules.
   * `onDataLoaded()`: Subscribe to "loaded" event if needed.
 
 * **stateManager.js**:
@@ -115,7 +114,7 @@ polytope-viewer/
 
 * **meshBuilder.js**:
 
-  * Converts JSON `{ vertices: [...], faces: [...] }` into `BufferGeometry`.
+  * Converts Polytope instances (via `Polytope.toJSON()`) into `BufferGeometry`.
   * Triangulates n‑gons, computes normals.
   * Creates `MeshLambertMaterial` or `MeshStandardMaterial` based on platform.
   * Optionally adds `EdgesGeometry` for wireframes.
@@ -128,26 +127,39 @@ polytope-viewer/
 
 ---
 
-## 6. Data & Vendor Folders
+## 6. Polytope Code (`polytopes/`)
 
-* **vendor/**
+* **Polytope.js**: Defines the `Polytope` class.
+  * Constructor takes `vertices` as input.
+  * Uses QuickHull3D to compute `faces` and `edges`.
+  * Computes `center` as centroid of all vertices.
+  * Public members: `vertices`, `faces`, `edges`, `center`.
+  * Method `toJSON()` exports object for rendering or saving.
 
-  * Include script files *as is*: `three.module.js`, `Camera-Control`, `gif.js`, `gif.worker.js`.
-  * No build or transpilation required.
+* **build_functions/**: Each file exports a builder that returns a new `Polytope` object. Example:
 
-* **polytopes/**
+  ```js
+  import { Polytope } from '../Polytope.js';
+  export function build_tetrahedron() {
+    const vertices = [ ... ];
+    return new Polytope(vertices);
+  }
+  ```
 
-  * `data/manifest.json`: Array of `{ name: string, file: string }` entries.
-  * `data/`: One JSON file per polytope containing its geometry.
+* **manifest.json**: Lists available polytopes and their builder file names:
+  ```json
+  [
+    { "name": "Tetrahedron", "builder": "build_tetrahedron.js" }
+  ]
+  ```
 
 ---
 
 ## 7. Extending the Viewer
 
 1. **Add a new polytope**:
-
-   * Add its JSON to `polytopes/data/`.
-   * Append `{ name: 'MyPoly', file: 'my-poly.json' }` to `polytopes/manifest.json`.
+   * Create a builder in `polytopes/build_functions/` that returns a `Polytope`.
+   * Add a new entry in `polytopes/manifest.json` with `name` and `builder`.
    * The UI dropdown and scene will pick it up automatically.
 
 2. **New controls**:
@@ -168,4 +180,5 @@ polytope-viewer/
 
 ---
 
-This specification should enable anyone (or an AI) to understand, run, and extend the refactored Polytope Viewer without digging through intertwined legacy files.
+This updated specification reflects the modular, builder-based design of the Polytope Viewer and retains all previous architecture details unrelated to polytope storage.
+

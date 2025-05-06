@@ -100,17 +100,13 @@ export function setupScene(state) {
     // by subscribing to the settnigsChanged
     state.on('settingsChanged', ({ key, value }) => updateSettings(key, value, state));
 
-    // Load and set initial polytope
-    const initial = state.data.geometries['Permutahedron'];
-    state.setSetting('currentPolytope', initial);
 
     // Build and add mesh
-    currentMesh = buildMesh(state.settings.currentPolytope, state);
+    currentMesh = buildMesh(state.currentPolytope);
     scene.add(currentMesh);
 
     // Set the target to the polytope center (this is the orbit point)
-    const center = state.settings.currentPolytope.center;
-    //cameraControls.setOrbitPoint(center[0], center[1], center[2], false);
+    const center = state.currentPolytope.center;
     
     // Calculate and set appropriate initial camera distance
     const initialDistance = calculateCameraDistance(state.settings.currentPolytope, detectPlatform());
@@ -152,56 +148,61 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+
+
+/**
+ *
+ *Change when the polytope changes.
+ */
+
+function updatePolytope(polytope) {
+    //Takes in a polytope.js class object
+    if (currentMesh) scene.remove(currentMesh);
+    currentMesh = buildMesh(state.currentPolytope);
+    scene.add(currentMesh);
+
+    const center = state.currentPolytope.center;
+    
+    // Calculate appropriate camera distance based on polytope size
+    const isMobile = detectPlatform();
+    const distance = calculateCameraDistance(state.settings.currentPolytope, isMobile);
+    
+    // Position the camera at the calculated distance along the z-axis
+    const cameraPosition = new THREE.Vector3(
+        center[0], 
+        center[1], 
+        center[2] + distance
+    );
+    cameraControls.reset();
+    cameraControls.setPosition(center[0], center[1], center[2] + 3*distance, false);
+    cameraControls.setLookAt(
+        cameraPosition.x, 
+        cameraPosition.y, 
+        cameraPosition.z,
+        center[0],
+        center[1],
+        center[2],
+        true
+    );
+}
+
 /**
  * Apply setting changes to the scene and mesh.
  */
 function updateSettings(key, value, state) {
     switch (key) {
-    case 'currentPolytope':
-        if (currentMesh) scene.remove(currentMesh);
-        currentMesh = buildMesh(state.settings.currentPolytope, state);
-        scene.add(currentMesh);
-        
-        // Update the target/orbit point to the new polytope's center
-        const center = state.settings.currentPolytope.center;
-        //cameraControls.setOrbitPoint(center[0], center[1], center[2], false);
-        
-        // Calculate appropriate camera distance based on polytope size
-        const isMobile = detectPlatform();
-        const distance = calculateCameraDistance(state.settings.currentPolytope, isMobile);
-        
-        // Position the camera at the calculated distance along the z-axis
-        const cameraPosition = new THREE.Vector3(
-            center[0], 
-            center[1], 
-            center[2] + distance
-        );
-        cameraControls.reset();
-        cameraControls.setPosition(center[0], center[1], center[2] + 3*distance, false);
-        cameraControls.setLookAt(
-            cameraPosition.x, 
-            cameraPosition.y, 
-            cameraPosition.z,
-            center[0],
-            center[1],
-            center[2],
-            true
-        );
-        //cameraControls.setTarget(center[0]+ 100,center[1],center[2]);
-        
-        break;
 
     case 'faceColor':
         if (currentMesh && state.settings.colorScheme === 'Single Color') {
             scene.remove(currentMesh);
-            currentMesh = buildMesh(state.settings.currentPolytope, state);
+            currentMesh = buildMesh(state.currentPolytope);
             scene.add(currentMesh);
         }
         break;
 
     case 'colorScheme':
         if (currentMesh) scene.remove(currentMesh);
-        currentMesh = buildMesh(state.settings.currentPolytope, state);
+        currentMesh = buildMesh(state.currentPolytope);
         scene.add(currentMesh);
         break;
 

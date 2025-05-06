@@ -1,51 +1,69 @@
-import { EventEmitter } from './utils.js';
-const emitter = new EventEmitter();
+// File: src/core/loader.js
 
 /**
- * Load manifest and all polytope geometry JSON files.
- * Expects `../../polytopes/data/manifest.json` to be a list of filenames
+ * Load all JS builder files from /polytopes/build_functions/,
+ * parse their top‐line comment (“// PolytopeName”) for the name,
+ * dynamically import each module, and return a map of builders.
+ *
+ * Works under python3 -m http.server or any static HTTP host.
+ *
+ * @returns {Promise<Record<string, Function>>}
  */
 export async function loadData() {
+  // 1) Point at the correct folder:
+  const baseURL = `${window.location.origin}/polytopes/build_functions/`;
+  console.log('Loader baseURL →', baseURL);
 
-    var loc = window.location.pathname;
-    var dir = loc.substring(0, loc.lastIndexOf('/'));
-  const manifestResp = await fetch('././polytopes/data/manifest.json');
-  if (!manifestResp.ok) {
-    throw new Error('Failed to fetch polytope manifest');
+  // 2) Fetch the directory listing HTML
+  const dirResp = await fetch(baseURL);
+  if (!dirResp.ok) {
+    throw new Error(`Could not list builder_functions at ${baseURL} (status ${dirResp.status})`);
   }
-  
-  const fileList = await manifestResp.json();
-    const geometries = {};
-    const fileoutputs = {};
-  const manifest = fileList.map(file => {
-    // Extract name from filename (remove .json extension)
-    const name = file.replace('.json', '');
-    return { name, file };
-  });
+  const dirHtml = await dirResp.text();
 
-  await Promise.all(
-    manifest.map(async ({ name, file }) => {
-      const url = `././polytopes/data/${file}`;
-	const resp = await fetch(url);
-      if (!resp.ok) {
-        console.warn(`Warning: failed to load ${name} from ${file}`);
+  // 3) Parse out all <a> links and extract href filenames
+  const doc     = new DOMParser().parseFromString(dirHtml, 'text/html');
+  const rawHrefs = Array.from(doc.querySelectorAll('a[href]'))
+    .map(a => a.getAttribute('href'));
+
+  // 4) Keep only files matching build_*.js
+  const filenames = rawHrefs
+    .map(h => h.split('/').pop())            // drop any path segments
+    .filter(name => /^build_.*\.js$/.test(name));
+
+  console.log('Found build files →', filenames);
+
+  const builders = {};
+
+  // 5) For each builder file: fetch its source, read the name comment, then import it
+  await Promise.all(filenames.map(async filename => {
+    const fileURL = baseURL + filename;
+    console.log('  Loading builder →', fileURL);
+
+    try {
+      // 5a) Fetch raw source to grab the leading `// PolytopeName`
+      const srcResp = await fetch(fileURL);
+      if (!srcResp.ok) {
+        console.warn(`Failed to fetch builder source: ${filename}`);
         return;
       }
-	const fileoutput =  await resp.json();
-	fileoutputs[name] = fileoutput;
-    })
-  );
-    const values = Object.values(fileoutputs);
-    for (let i = 0; i < values.length; i++) {
-	const value = values[i]
-	//console.log(value);
-	geometries[value.name] = value;
-    }
-  emitter.emit('loaded', { manifest, geometries });
-  return { manifest, geometries };
-}
+      const sourceText = await srcResp.text();
+      const firstLine  = sourceText.split('\n', 1)[0].trim();
+      const polyName   = firstLine.startsWith('//')
+        ? firstLine.slice(2).trim()
+        : filename.replace('.js', '');
 
-/** Subscribe to data-loaded event */
-export function onDataLoaded(listener) {
-  emitter.on('loaded', listener);
+      // 5b) Dynamically import the module and grab its first function export
+      const mod       = await import(fileURL);
+      const builderFn = Object.values(mod).find(exp => typeof exp === 'function');
+      if (builderFn) {
+        builders[polyName] = builderFn;
+        console.log(`    Registered builder: ${polyName}`);
+      }
+    } catch (err) {
+      console.warn(`Error loading builder ${filename}:`, err);
+    }
+  }));
+
+  return builders;
 }

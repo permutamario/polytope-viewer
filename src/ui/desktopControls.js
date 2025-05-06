@@ -19,10 +19,10 @@ export function setupDesktopControls(state) {
     const polySelect = createDropdown({
 	id: 'polytope-select',
 	label: 'Polytope',
-	options: state.settings.polyNames,
-	value: state.settings.currentPolytope.name,
+	options: state.polyNames,
+	value: state.currentPolytope.name,
 	onChange: v => {
-	    state.setSetting('currentPolytope', state.data.geometries[v]);
+	    state.setPolytope(v);
 	}
     });
     container.appendChild(polySelect);

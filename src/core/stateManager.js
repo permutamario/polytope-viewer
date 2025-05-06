@@ -16,15 +16,10 @@ export function initializeState(data) {
     // Loaded manifest & geometries
       data,
 
-      polytope: {
-	  name: "Default", //
-	  vertices: [], //
-	  dimension: 3, //
-	  center: [0,0,0] //
-	  faces: [] //
-	  edges: [] //
-	  
-      }
+      polytopeManifest: {}, // dictionary of {polytopeName, builder_function}
+
+      currentPolytope: {}, // Polytope.js object which holds the currently built polytope
+      currentbuilder: {}, // The current builder function
 
     // UI & rendering settings with sensible defaults
     settings: {
@@ -35,7 +30,7 @@ export function initializeState(data) {
       vertexEmphasis: false,
 	vertexColor: '#ffffff',
 	showEdges: false,
-	currentPolytope: data.geometries['Permutahedron'],
+	//currentPolytope: data.geometries['Permutahedron'], is now part more general
       // ...add more defaults as needed
     },
 
@@ -123,6 +118,13 @@ export function initializeState(data) {
       this.settings[key] = value;
       emitter.emit('settingsChanged', { key, value });
     },
+
+      // Change the polytope and notify everyone.
+      setPolytope(name) {
+	  this.currentPolytope = this.polytopeManifest[name](); //Call the builder
+	  this.currentBuilder = this.polytopeManifest[name]; //Save the builder just in case
+	  emitter.emit('polytopeChanged', { name, builder })
+      },
 
     /**
      * Subscribe to state events ('settingsChanged')
