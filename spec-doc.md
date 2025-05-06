@@ -27,11 +27,12 @@ polytope-viewer/
 │       ├── sceneManager.js
 │       ├── meshBuilder.js
 │       └── exportManager.js
-├── vendor/                ← Third‑party libs (Three.js, OrbitControls.js, GIF.js)
+├── vendor/                ← Third‑party libs (Three.js, Camera-Control, GIF.js)
 └── polytopes/             ← Geometry data and manifest
-    ├── manifest.json
+    ├─
     └── data/
         ├── cube.json
+	|---Manifest.json
         └── ...
 ```
 
@@ -131,12 +132,12 @@ polytope-viewer/
 
 * **vendor/**
 
-  * Include script files *as is*: `three.module.js`, `OrbitControls.js`, `gif.js`, `gif.worker.js`.
+  * Include script files *as is*: `three.module.js`, `Camera-Control`, `gif.js`, `gif.worker.js`.
   * No build or transpilation required.
 
 * **polytopes/**
 
-  * `manifest.json`: Array of `{ name: string, file: string }` entries.
+  * `data/manifest.json`: Array of `{ name: string, file: string }` entries.
   * `data/`: One JSON file per polytope containing its geometry.
 
 ---
