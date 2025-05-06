@@ -220,11 +220,11 @@ function updateSettings(key, value, state) {
             currentMesh.children
 		.filter(obj => obj.type === 'LineSegments')
 		.forEach(obj => currentMesh.remove(obj));
-            if (value) x{
+            if (value) {
 		const edges = new THREE.EdgesGeometry(currentMesh.geometry);
 		const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
 		currentMesh.add(line);
-            }
+	    }
 	}
 	break;
 
