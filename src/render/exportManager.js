@@ -86,7 +86,7 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
       workers: 2,
       quality: actualQuality,
       // Fix worker path if needed - ensure this resolves correctly
-      workerScript: '../../vendor/gif.js/gif.worker.js'  // Use absolute path from root
+      workerScript: '././vendor/gif.js/gif.worker.js'  // Use absolute path from root
     });
 
     // Progress callback
