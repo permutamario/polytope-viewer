@@ -6,7 +6,7 @@ import {
   createDropdown,
   createButton
 } from './baseControls.js';
-import { exportPNG, exportGIF } from '../render/exportManager.js';
+import { exportPNG, exportGIF, exportToSageMath, exportToPolymake } from '../render/exportManager.js';
 
 /**
  * Assemble and mount mobile header and footer controls with improved layout.
@@ -149,8 +149,23 @@ export function setupMobileControls(state) {
 	  showNotification("Mario has not enabled me yet 😢");
       }
   });
-  exportButtonsContainer.appendChild(gifBtn);
-  
+    exportButtonsContainer.appendChild(gifBtn);
+
+    const sageBtn = createButton({
+	id: 'export-sage-mobile',
+	label: 'Sage',
+	onClick: () => exportToSageMath(state.settings.currentPolytope)
+    });
+    exportButtonsContainer.appendChild(sageBtn);
+
+    // // Export Polymake button
+    // const polymakeBtn = createButton({
+    // 	id: 'export-polymake-mobile',
+    // 	label: 'Polymake',
+    // 	onClick: () => exportToPolymake(state.settings.currentPolytope)
+    // });
+    // exportButtonsContainer.appendChild(polymakeBtn);
+    
   // Add the export buttons container to the menu
   menu.appendChild(exportButtonsContainer);
   
@@ -202,3 +217,4 @@ function showNotification(message, duration = 3000) {
     }, 500);
   }, duration);
 }
+

@@ -37,7 +37,9 @@ async function main() {
 	console.log("Built Desktop UI");
     }
     
-    
+    //const viewerCanvas = document.createElement('div');
+    //viewerCanvas.id = 'viewer-canvas';
+    //document.body.appendChild(viewerCanvas);
     // 5. Initialize Three.js scene with state-driven behavior
     setupScene(state);
     console.log("Setup Scene");

@@ -1,94 +1,78 @@
 #!/usr/bin/env sage
-# File: build_stellahedron_3d.py
+# File: build_stellahedron.py
 
 import math
 import itertools
 try:
-    from sage.all import Polyhedron, vector
+    from sage.all import Polyhedron, vector, QQ
 except ImportError:
     Polyhedron = None
     vector = None
+    QQ = None
 
 def _placeholder_polytope():
     return None, "Error: Sage Not Loaded"
 
 def build_stellahedron():
     """
-    Construct the 3D stellahedron.
+    Construct the 3D stellahedron as the Minkowski sum of 
+    independence polytopes.
     
-    The 3D stellahedron is defined in relation to the permutohedron. 
-    First we build the permutohedron in 3D (using permutations of [1,2,3,4]),
-    then we define the stellahedron as all points with positive coordinates
-    such that there exists a point in the permutohedron with the difference
-    also having positive coordinates.
+    The stellahedron is the Minkowski sum of the independence
+    polytopes of uniform matroids u_1,3, u_2,3, and u_3,3.
     
     Returns:
         A tuple containing:
         - The Sage Polyhedron object representing the stellahedron
-        - A string with the name "Stellahedron 3D"
+        - A string with the name "Stellahedron"
     """
     if not Polyhedron:
         return _placeholder_polytope()
 
-    # First, construct the permutohedron vertices (permutations of [1,2,3,4])
-    # projected to R³ by removing the constant component
-    permutohedron_vertices = []
-    for perm in itertools.permutations([1, 2, 3, 4]):
-        # Project to R³ by removing the last coordinate
-        permutohedron_vertices.append(perm[:-1])
-    
-    # Create the permutohedron
-    if not Polyhedron:
-        return _placeholder_polytope()
-    
     try:
-        permutohedron = Polyhedron(vertices=permutohedron_vertices)
-        
-        # To construct the stellahedron, we need to:
-        # 1. Find all vertices of the permutohedron
-        # 2. Find all relevant positive direction vectors
-        # 3. Compute all vertices of the stellahedron by subtracting
-        #    positive direction vectors from permutohedron vertices
-        #    while keeping all coordinates positive
-        
-        # All possible unit direction vectors in the positive directions
-        direction_vectors = [
-            (1, 0, 0), (0, 1, 0), (0, 0, 1),
-            (1, 1, 0), (1, 0, 1), (0, 1, 1),
-            (1, 1, 1)
+        # Build the independence polytope of u_1,3
+        # This is the convex hull of all 0-1 vectors with at most 1 ones
+        u_1_3_vertices = [
+            [0, 0, 0],  # Empty set
+            [1, 0, 0],  # {1}
+            [0, 1, 0],  # {2}
+            [0, 0, 1]   # {3}
         ]
+        u_1_3_polytope = Polyhedron(vertices=u_1_3_vertices, base_ring=QQ)
         
-        stellahedron_vertices = set()
+        # Build the independence polytope of u_2,3
+        # This is the convex hull of all 0-1 vectors with at most 2 ones
+        u_2_3_vertices = [
+            [0, 0, 0],  # Empty set
+            [1, 0, 0],  # {1}
+            [0, 1, 0],  # {2}
+            [0, 0, 1],  # {3}
+            [1, 1, 0],  # {1,2}
+            [1, 0, 1],  # {1,3}
+            [0, 1, 1]   # {2,3}
+        ]
+        u_2_3_polytope = Polyhedron(vertices=u_2_3_vertices, base_ring=QQ)
         
-        # For each permutohedron vertex and each direction,
-        # create potential stellahedron vertices
-        for v in permutohedron.vertices():
-            v_coords = tuple(v)
-            
-            # Add the permutohedron vertex itself
-            stellahedron_vertices.add(v_coords)
-            
-            # Add vertices created by subtracting positive directions
-            for d in direction_vectors:
-                # Scale the direction vector
-                for scale in range(1, 5):  # Try different scales
-                    scaled_d = tuple(scale * di for di in d)
-                    
-                    # Subtract the scaled direction vector
-                    new_vertex = tuple(v_coords[i] - scaled_d[i] for i in range(3))
-                    
-                    # Check if all coordinates are still positive
-                    if all(x > 0 for x in new_vertex):
-                        stellahedron_vertices.add(new_vertex)
+        # Build the independence polytope of u_3,3
+        # This is the convex hull of all 0-1 vectors with at most 3 ones
+        # In this case, it's all possible 0-1 vectors in 3D
+        u_3_3_vertices = [
+            [0, 0, 0],  # Empty set
+            [1, 0, 0],  # {1}
+            [0, 1, 0],  # {2}
+            [0, 0, 1],  # {3}
+            [1, 1, 0],  # {1,2}
+            [1, 0, 1],  # {1,3}
+            [0, 1, 1],  # {2,3}
+            [1, 1, 1]   # {1,2,3}
+        ]
+        u_3_3_polytope = Polyhedron(vertices=u_3_3_vertices, base_ring=QQ)
         
-        # Convert set of vertices to list
-        stellahedron_vertices_list = list(stellahedron_vertices)
-        
-        # Create the stellahedron
-        stellahedron = Polyhedron(vertices=stellahedron_vertices_list)
+        # Compute the Minkowski sum: u_1,3 + u_2,3 + u_3,3
+        # We do this step by step
+        temp_sum = u_1_3_polytope.minkowski_sum(u_2_3_polytope)
+        stellahedron = temp_sum.minkowski_sum(u_3_3_polytope)
         
         return stellahedron, "Stellahedron"
     except Exception as e:
         return None, f"Error constructing stellahedron: {str(e)}"
-
-

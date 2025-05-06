@@ -32,16 +32,26 @@ export function createSlider({ id, label, min, max, step, value, onChange }) {
   return container;
 }
 
-export function createCheckbox({ id, label, checked, onChange }) {
-  const container = createControlContainer();
+export function createCheckbox({ id, label, checked = false, onChange }) {
+  const container = document.createElement('div');
+  container.className = 'checkbox-container';
+  
+  const labelEl = document.createElement('label');
+  labelEl.htmlFor = id;
+  labelEl.textContent = label;
+  
   const input = document.createElement('input');
   input.type = 'checkbox';
   input.id = id;
   input.checked = checked;
-  input.addEventListener('change', e => onChange(e.target.checked));
-  const lbl = createLabel(id, label);
+  
+  input.addEventListener('change', e => {
+    if (onChange) onChange(e.target.checked);
+  });
+  
+  container.appendChild(labelEl);
   container.appendChild(input);
-  container.appendChild(lbl);
+  
   return container;
 }
 

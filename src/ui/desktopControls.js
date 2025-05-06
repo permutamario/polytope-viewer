@@ -6,7 +6,7 @@ import {
     createDropdown,
     createButton
 } from './baseControls.js';
-import { exportPNG, exportGIF } from '../render/exportManager.js';
+import { exportPNG, exportGIF, exportToSageMath, exportToPolymake } from '../render/exportManager.js';
 
 /**
  * Assemble and mount desktop sidebar controls.
@@ -48,18 +48,18 @@ export function setupDesktopControls(state) {
     });
     container.appendChild(opacitySlider);
 
-    // Face color picker
-    const faceColor = createColorPicker({
-	id: 'face-color',
-	label: 'Face Color',
-	value: state.settings.faceColor,
+    // // Face color picker
+    // const faceColor = createColorPicker({
+    // 	id: 'face-color',
+    // 	label: 'Face Color',
+    // 	value: state.settings.faceColor,
 	
-	onChange: v => {
-	    state.colorSchemes['Single Color'] = v;
-	    state.setSetting('faceColor', v);
-	}
-    });
-    container.appendChild(faceColor);
+    // 	onChange: v => {
+    // 	    state.colorSchemes['Single Color'] = v;
+    // 	    state.setSetting('faceColor', v);
+    // 	}
+    // });
+    //container.appendChild(faceColor);
 
     // Color scheme chooser 
     const colorNames = Object.keys(state.colorSchemes)
@@ -104,6 +104,21 @@ export function setupDesktopControls(state) {
     container.appendChild(gifBtn);
 
     document.body.appendChild(container);
+
+    const sageBtn = createButton({
+	id: 'export-sage',
+	label: 'Export to SageMath',
+	onClick: () => exportToSageMath(state.settings.currentPolytope)
+    });
+    container.appendChild(sageBtn);
+
+    // Polymake export button
+    // const polymakeBtn = createButton({
+    // 	id: 'export-polymake',
+    // 	label: 'Export to Polymake',
+    // 	onClick: () => exportToPolymake(state.settings.currentPolytope)
+    // });
+    // container.appendChild(polymakeBtn);
 }
 
 

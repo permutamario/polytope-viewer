@@ -21,7 +21,7 @@ export function initializeState(data) {
       animation: false,           // autorotate
       colorScheme: 'Rainbow',
       faceColor: '#156289',      // fallback face color
-      faceOpacity: 0.8,
+      faceOpacity: 1,
       vertexEmphasis: false,
 	vertexColor: '#ffffff',
 	showEdges: false,
