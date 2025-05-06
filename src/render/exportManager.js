@@ -1,7 +1,7 @@
 // src/render/exportManager.js
 import { detectPlatform } from '../core/utils.js';
 import { getState } from '../core/stateManager.js';
-//import { toggleAutorotation } from './sceneManager.js';
+// Uncomment and fix the import - this is likely the core issue
 import GIF from '../../vendor/gif.js/gif.js';
 
 /**
@@ -45,9 +45,9 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
   console.log(`Creating GIF: ${duration}s @ ${fps} FPS, quality ${quality}`);
 
   // Adjust parameters for mobile
-    const useMobile = detectPlatform();
-  const actualFps =  fps;
-  const actualQuality =  quality;
+  const useMobile = detectPlatform();
+  const actualFps = fps;
+  const actualQuality = quality;
   const actualDuration = duration;
 
   if (!renderer || !scene || !camera) {
@@ -56,9 +56,10 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
     return;
   }
 
+  // First check - verify GIF library is available
   if (typeof GIF === 'undefined') {
     console.error("GIF.js library not loaded.");
-    alert("GIF export requires the GIF.js library.");
+    alert("GIF export requires the GIF.js library. Please check the console for more details.");
     return;
   }
 
@@ -75,70 +76,95 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
   document.body.appendChild(progressDiv);
 
   // Save prior autorotation state and force-enable autorotation
-  const wasAutorotating = getState().settings.animation
-    getState().setSetting("animation",true)
+  const wasAutorotating = getState().settings.animation;
+  getState().setSetting("animation", true);
 
-  // Prepare GIF.js encoder
-  const gif = new GIF({
-    workers: 2,
-    quality: actualQuality,
-    workerScript: '../vendor/gif.js/gif.worker.js'
-  });
+  try {
+    // Prepare GIF.js encoder with full path to worker
+    const gif = new GIF({
+      workers: 2,
+      quality: actualQuality,
+      // Fix worker path if needed - ensure this resolves correctly
+      workerScript: './vendor/gif.js/gif.worker.js'  // Changed path from '../vendor' to './vendor'
+    });
 
-  // Progress callback
-  gif.on('progress', p => {
-    progressDiv.textContent = `Processing frames: ${Math.round(p * 100)}%`;
-  });
+    // Progress callback
+    gif.on('progress', p => {
+      console.log(`GIF processing: ${Math.round(p * 100)}%`);  // Add console logging
+      progressDiv.textContent = `Processing frames: ${Math.round(p * 100)}%`;
+    });
 
-  // Finished callback
-  gif.on('finished', blob => {
+    // Finished callback
+    gif.on('finished', blob => {
       // Restore autorotating
-      getState().setSetting("animation",wasAutorotating)
+      getState().setSetting("animation", wasAutorotating);
 
-    // Remove progress indicator
-    document.body.removeChild(progressDiv);
+      // Remove progress indicator
+      document.body.removeChild(progressDiv);
 
-    // Download GIF
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'polytope_animation.gif';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Download GIF
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'polytope_animation.gif';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-    // Revoke object URL shortly after
-    setTimeout(() => URL.revokeObjectURL(url), 100);
-  });
+      // Revoke object URL shortly after
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    });
 
-  // Calculate total frames & rotation increment
-  const totalFrames = Math.floor(actualDuration * actualFps);
-  const totalRotation = Math.PI * 0.4; // 180° turn
-  const rotationIncrement = totalRotation / totalFrames;
-  let framesCaptured = 0;
+    // Error handler
+    gif.on('error', error => {
+      console.error("GIF generation error:", error);
+      progressDiv.textContent = `Error: ${error.message || "GIF creation failed"}`;
+      setTimeout(() => {
+        document.body.removeChild(progressDiv);
+        getState().setSetting("animation", wasAutorotating);
+      }, 3000);
+    });
 
-  // Capture loop
-  function capture() {
-    if (framesCaptured >= totalFrames) {
-      gif.render();
-      return;
+    // Calculate total frames & rotation increment
+    const totalFrames = Math.floor(actualDuration * actualFps);
+    const totalRotation = Math.PI * 0.4; // 180° turn
+    const rotationIncrement = totalRotation / totalFrames;
+    let framesCaptured = 0;
+
+    // Capture loop
+    function capture() {
+      if (framesCaptured >= totalFrames) {
+        progressDiv.textContent = 'Processing GIF...';
+        setTimeout(() => gif.render(), 100); // Slight delay before processing
+        return;
+      }
+      
+      // Update progress
+      progressDiv.textContent = `Recording frames: ${Math.round((framesCaptured / totalFrames) * 100)}%`;
+      
+      // Render and add frame
+      renderer.render(scene, camera);
+      gif.addFrame(renderer.domElement, { copy: true, delay: 1000 / actualFps });
+      framesCaptured++;
+
+      // Rotate the entire scene subtly
+      scene.rotation && (scene.rotation.y += rotationIncrement);
+
+      // Queue next frame
+      requestAnimationFrame(capture);
     }
-    // Render and add frame
-    renderer.render(scene, camera);
-    gif.addFrame(renderer.domElement, { copy: true, delay: 1000 / actualFps });
-    framesCaptured++;
 
-    // Rotate the entire scene subtly
-    scene.rotation && (scene.rotation.y += rotationIncrement);
-
-    // Queue next frame
-    requestAnimationFrame(capture);
+    // Start capturing
+    capture();
+  } catch (error) {
+    console.error("Failed to initialize GIF export:", error);
+    progressDiv.textContent = `Error: ${error.message || "GIF initialization failed"}`;
+    setTimeout(() => {
+      document.body.removeChild(progressDiv);
+      getState().setSetting("animation", wasAutorotating);
+    }, 3000);
   }
-
-  // Start capturing
-  capture();
 }
-
 
 /**
  * Export the current polytope as SageMath code

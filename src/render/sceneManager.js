@@ -28,8 +28,6 @@ function calculateCameraDistance(polytope, isMobile) {
     // Find the maximum distance from center to any vertex
     let maxDistance = 0;
     const center = polytope.center || [0, 0, 0];
-    console.log("Center is");
-    console.log(center);
     for (const vertex of polytope.vertices) {
 	const dx = vertex[0] - center[0];
 	const dy = vertex[1] - center[1];
@@ -170,7 +168,6 @@ function updateSettings(key, value, state) {
             center[1], 
             center[2] + distance
 	);
-	console.log(center);
 	cameraControls.reset();
 	cameraControls.setPosition(center[0], center[1],center[2] + 3*distance,false)
 	cameraControls.setLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
