@@ -97,8 +97,8 @@ export function setupDesktopControls(state) {
 	id: 'export-gif',
 	label: 'Export GIF',
       onClick: () => {
-	  //exportGIF(state.renderer, state.scene, state.camera)
-	  showNotification("Mario has not enabled me yet 😢");
+	  exportGIF(state.renderer, state.scene, state.camera)
+	  //showNotification("Mario has not enabled me yet 😢");
       }
     });
     container.appendChild(gifBtn);

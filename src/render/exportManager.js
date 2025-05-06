@@ -1,5 +1,6 @@
 // src/render/exportManager.js
-//import { isMobileDevice } from '../core/utils.js';
+import { detectPlatform } from '../core/utils.js';
+import { getState } from '../core/stateManager.js';
 //import { toggleAutorotation } from './sceneManager.js';
 //import GIF from '../../vendor/gif.js/gif.js';
 
@@ -44,7 +45,7 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
   console.log(`Creating GIF: ${duration}s @ ${fps} FPS, quality ${quality}`);
 
   // Adjust parameters for mobile
-  //const useMobile = isMobileDevice();
+    const useMobile = detectPlatform();
   const actualFps =  fps;
   const actualQuality =  quality;
   const actualDuration = duration;
@@ -74,7 +75,7 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
   document.body.appendChild(progressDiv);
 
   // Save prior autorotation state and force-enable autorotation
-  const wasAutorotating = getState().animation
+  const wasAutorotating = getState().settings.animation
     getState().setSetting("animation",true)
 
   // Prepare GIF.js encoder
@@ -92,7 +93,7 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
   // Finished callback
   gif.on('finished', blob => {
       // Restore autorotating
-      getState.setSetting("animation",wasAutorotation)
+      getState().setSetting("animation",wasAutorotating)
 
     // Remove progress indicator
     document.body.removeChild(progressDiv);

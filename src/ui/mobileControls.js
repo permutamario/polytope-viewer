@@ -145,8 +145,8 @@ export function setupMobileControls(state) {
     id: 'export-gif-mobile',
     label: 'Export GIF',
       onClick: () => {
-	  //exportGIF(state.renderer, state.scene, state.camera)
-	  showNotification("Mario has not enabled me yet 😢");
+	  exportGIF(state.renderer, state.scene, state.camera)
+	  //showNotification("Mario has not enabled me yet 😢");
       }
   });
     exportButtonsContainer.appendChild(gifBtn);
