@@ -43,7 +43,6 @@ export function exportPNG(renderer, scene, camera) {
  */
 export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quality = 10) {
   // Alert user that we're starting GIF creation
-  alert("Starting GIF creation. This may take a moment. Check the console for progress updates.");
   console.log(`Creating GIF: ${duration}s @ ${fps} FPS, quality ${quality}`);
 
   // Adjust parameters for mobile
@@ -87,7 +86,7 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
       workers: 2,
       quality: actualQuality,
       // Fix worker path if needed - ensure this resolves correctly
-      workerScript: '/vendor/gif.js/gif.worker.js'  // Use absolute path from root
+      workerScript: '../../vendor/gif.js/gif.worker.js'  // Use absolute path from root
     });
 
     // Progress callback
