@@ -127,7 +127,7 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
 
     // Calculate total frames & rotation increment
     const totalFrames = Math.floor(actualDuration * actualFps);
-    const totalRotation = Math.PI * 0.4; // 180° turn
+    const totalRotation = Math.PI; // 360° turn
     const rotationIncrement = totalRotation / totalFrames;
     let framesCaptured = 0;
 

@@ -22,18 +22,18 @@ const AUTO_ROTATE_SPEED = Math.PI / 8; // radians per second
 function calculateCameraDistance(polytope, isMobile) {
     // If no vertices, return a default distance
     if (!polytope.vertices || polytope.vertices.length === 0) {
-	return 5;
+        return 5;
     }
     
     // Find the maximum distance from center to any vertex
     let maxDistance = 0;
     const center = polytope.center || [0, 0, 0];
     for (const vertex of polytope.vertices) {
-	const dx = vertex[0] - center[0];
-	const dy = vertex[1] - center[1];
-	const dz = vertex[2] - center[2];
-	const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-	maxDistance = Math.max(maxDistance, distance);
+        const dx = vertex[0] - center[0];
+        const dy = vertex[1] - center[1];
+        const dz = vertex[2] - center[2];
+        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        maxDistance = Math.max(maxDistance, distance);
     }
     
     // Apply a padding factor to ensure the polytope fits in view
@@ -56,9 +56,9 @@ export function setupScene(state) {
     // Create a container for the renderer if it doesn't exist
     let viewerCanvas = document.getElementById('viewer-canvas');
     if (!viewerCanvas) {
-	viewerCanvas = document.createElement('div');
-	viewerCanvas.id = 'viewer-canvas';
-	document.body.appendChild(viewerCanvas);
+        viewerCanvas = document.createElement('div');
+        viewerCanvas.id = 'viewer-canvas';
+        document.body.appendChild(viewerCanvas);
     }
 
     // Append the renderer to the viewer canvas
@@ -80,9 +80,9 @@ export function setupScene(state) {
     // CameraControls
     cameraControls = new CameraControls(camera, renderer.domElement);
     cameraControls.mouseButtons.right = CameraControls.ACTION.OFFSET;
-    cameraControls.touches.one        = CameraControls.ACTION.TOUCH_ROTATE;
-    cameraControls.touches.two        = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
-    cameraControls.touches.three      = CameraControls.ACTION.TOUCH_OFFSET;
+    cameraControls.touches.one = CameraControls.ACTION.TOUCH_ROTATE;
+    cameraControls.touches.two = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
+    cameraControls.touches.three = CameraControls.ACTION.TOUCH_OFFSET;
     cameraControls.enableDamping = true;
     cameraControls.minPolarAngle = -Infinity;
     cameraControls.maxPolarAngle = Infinity;
@@ -114,8 +114,15 @@ export function setupScene(state) {
     // Calculate and set appropriate initial camera distance
     const initialDistance = calculateCameraDistance(state.settings.currentPolytope, detectPlatform());
     const cameraPosition = new THREE.Vector3(center[0], center[1], center[2] + initialDistance);
-    cameraControls.setLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
-			     center[0],center[1],center[2],true);
+    cameraControls.setLookAt(
+        cameraPosition.x, 
+        cameraPosition.y, 
+        cameraPosition.z,
+        center[0],
+        center[1],
+        center[2],
+        true
+    );
 
     animate();
 }
@@ -126,8 +133,8 @@ function animate() {
 
     // Auto-rotate if enabled
     if (autoRotate) {
-	// Use the rotate method of cameraControls to properly rotate around the target
-	cameraControls.rotate(-AUTO_ROTATE_SPEED * delta, 0, false);
+        // Use the rotate method of cameraControls to properly rotate around the target
+        cameraControls.rotate(-AUTO_ROTATE_SPEED * delta, 0, false);
     }
 
     // Update the controls - this is critical for making the rotation work
@@ -136,12 +143,12 @@ function animate() {
 }
 
 function onWindowResize() {
-  // Update camera aspect ratio based on window dimensions
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  
-  // Resize renderer to match window dimensions
-  renderer.setSize(window.innerWidth, window.innerHeight);
+    // Update camera aspect ratio based on window dimensions
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    
+    // Resize renderer to match window dimensions
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 /**
@@ -150,89 +157,96 @@ function onWindowResize() {
 function updateSettings(key, value, state) {
     switch (key) {
     case 'currentPolytope':
-	if (currentMesh) scene.remove(currentMesh);
-	currentMesh = buildMesh(state.settings.currentPolytope, state);
-	scene.add(currentMesh);
-	
-	// Update the target/orbit point to the new polytope's center
-	const center = state.settings.currentPolytope.center;
-	//cameraControls.setOrbitPoint(center[0], center[1], center[2], false);
-	
-	// Calculate appropriate camera distance based on polytope size
-	const isMobile = detectPlatform();
-	const distance = calculateCameraDistance(state.settings.currentPolytope, isMobile);
-	
-	// Position the camera at the calculated distance along the z-axis
-	const cameraPosition = new THREE.Vector3(
+        if (currentMesh) scene.remove(currentMesh);
+        currentMesh = buildMesh(state.settings.currentPolytope, state);
+        scene.add(currentMesh);
+        
+        // Update the target/orbit point to the new polytope's center
+        const center = state.settings.currentPolytope.center;
+        //cameraControls.setOrbitPoint(center[0], center[1], center[2], false);
+        
+        // Calculate appropriate camera distance based on polytope size
+        const isMobile = detectPlatform();
+        const distance = calculateCameraDistance(state.settings.currentPolytope, isMobile);
+        
+        // Position the camera at the calculated distance along the z-axis
+        const cameraPosition = new THREE.Vector3(
             center[0], 
             center[1], 
             center[2] + distance
-	);
-	cameraControls.reset();
-	cameraControls.setPosition(center[0], center[1],center[2] + 3*distance,false)
-	cameraControls.setLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
-				 center[0],center[1],center[2],true);
-	//cameraControls.setTarget(center[0]+ 100,center[1],center[2]);
-	
-	break;
+        );
+        cameraControls.reset();
+        cameraControls.setPosition(center[0], center[1], center[2] + 3*distance, false);
+        cameraControls.setLookAt(
+            cameraPosition.x, 
+            cameraPosition.y, 
+            cameraPosition.z,
+            center[0],
+            center[1],
+            center[2],
+            true
+        );
+        //cameraControls.setTarget(center[0]+ 100,center[1],center[2]);
+        
+        break;
 
     case 'faceColor':
-	if (currentMesh && state.settings.colorScheme === 'Single Color') {
+        if (currentMesh && state.settings.colorScheme === 'Single Color') {
             scene.remove(currentMesh);
             currentMesh = buildMesh(state.settings.currentPolytope, state);
             scene.add(currentMesh);
-	}
-	break;
+        }
+        break;
 
     case 'colorScheme':
-	if (currentMesh) scene.remove(currentMesh);
-	currentMesh = buildMesh(state.settings.currentPolytope, state);
-	scene.add(currentMesh);
-	break;
+        if (currentMesh) scene.remove(currentMesh);
+        currentMesh = buildMesh(state.settings.currentPolytope, state);
+        scene.add(currentMesh);
+        break;
 
     case 'faceOpacity':
-	if (currentMesh) {
+        if (currentMesh) {
             // Handle array of materials case
             if (Array.isArray(currentMesh.material)) {
-		currentMesh.material.forEach(mat => {
-		    mat.opacity = value;
-		    mat.transparent = value < 1;
-		    mat.needsUpdate = true;
-		    
-		    // Ensure proper depth handling for transparency
-		    mat.depthWrite = value >= 0.95;
-		});
+                currentMesh.material.forEach(mat => {
+                    mat.opacity = value;
+                    mat.transparent = value < 1;
+                    mat.needsUpdate = true;
+                    
+                    // Ensure proper depth handling for transparency
+                    mat.depthWrite = value >= 0.95;
+                });
             } 
             // Handle single material case
             else if (currentMesh.material) {
-		currentMesh.material.opacity = value;
-		currentMesh.material.transparent = value < 1;
-		currentMesh.material.needsUpdate = true;
-		
-		// Ensure proper depth handling for transparency
-		currentMesh.material.depthWrite = value >= 0.95;
+                currentMesh.material.opacity = value;
+                currentMesh.material.transparent = value < 1;
+                currentMesh.material.needsUpdate = true;
+                
+                // Ensure proper depth handling for transparency
+                currentMesh.material.depthWrite = value >= 0.95;
             }
-	}
-	break;
+        }
+        break;
 
     case 'showEdges':
-	if (currentMesh) {
+        if (currentMesh) {
             currentMesh.children
-		.filter(obj => obj.type === 'LineSegments')
-		.forEach(obj => currentMesh.remove(obj));
+                .filter(obj => obj.type === 'LineSegments')
+                .forEach(obj => currentMesh.remove(obj));
             if (value) {
-		const edges = new THREE.EdgesGeometry(currentMesh.geometry);
-		const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
-		currentMesh.add(line);
-	    }
-	}
-	break;
+                const edges = new THREE.EdgesGeometry(currentMesh.geometry);
+                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+                currentMesh.add(line);
+            }
+        }
+        break;
 
     case 'animation':
-	autoRotate = value;
-	break;
+        autoRotate = value;
+        break;
 
-	// Extend with other settings as needed
+        // Extend with other settings as needed
     }
 }
 /**
@@ -243,7 +257,7 @@ export function disposeScene() {
     cameraControls.dispose();
     renderer.dispose();
     scene.traverse(obj => {
-	if (obj.geometry) obj.geometry.dispose();
-	if (obj.material) obj.material.dispose();
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) obj.material.dispose();
     });
 }
