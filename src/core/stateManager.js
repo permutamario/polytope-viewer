@@ -11,20 +11,23 @@ let state = {};
  * Initialize the application state with loaded data.
  * Returns the state object with data, settings, and event methods.
  */
-export function initializeState(data) {
+export function initializeState(polytopeManifest) {
   state = {
-    // Loaded manifest & geometries
-      data,
-
-      polytopeManifest: {}, // dictionary of {polytopeName, builder_function}
+      polytopeManifest, // dictionary of {polytopeName, builder_function}
 
       currentPolytope: {}, // Polytope.js object which holds the currently built polytope
-      currentbuilder: {}, // The current builder function
+      currentBuilder: {}, // The current builder function
 
     // UI & rendering settings with sensible defaults
     settings: {
       animation: false,           // autorotate
-      colorScheme: 'Rainbow',
+	colorSchemeName: 'Rainbow',
+	colorScheme:  [
+	      '#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff',
+	      '#4b0082', '#9400d3', '#ff1493', '#00ffff', '#adff2f',
+	      '#ff00ff', '#1e90ff', '#ffb6c1', '#00fa9a', '#ffd700',
+	      '#ff6347', '#7fffd4', '#ff4500', '#9370db', '#3cb371'
+	],
       faceColor: '#156289',      // fallback face color
       faceOpacity: 1,
       vertexEmphasis: false,
@@ -121,9 +124,13 @@ export function initializeState(data) {
 
       // Change the polytope and notify everyone.
       setPolytope(name) {
-	  this.currentPolytope = this.polytopeManifest[name](); //Call the builder
-	  this.currentBuilder = this.polytopeManifest[name]; //Save the builder just in case
-	  emitter.emit('polytopeChanged', { name, builder })
+	  this.currentPolytope = this.polytopeManifest[name]();
+	  this.currentBuilder  = this.polytopeManifest[name];
+	  this.currentPolytope.name = name;
+	  emitter.emit('polytopeChanged', {
+	      name,
+	      currentBuilder: this.currentBuilder
+	  });
       },
 
     /**

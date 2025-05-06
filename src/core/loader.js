@@ -12,7 +12,7 @@
 export async function loadData() {
   // 1) Point at the correct folder:
   const baseURL = `${window.location.origin}/polytopes/build_functions/`;
-  console.log('Loader baseURL →', baseURL);
+  //console.log('Loader baseURL →', baseURL);
 
   // 2) Fetch the directory listing HTML
   const dirResp = await fetch(baseURL);
@@ -31,14 +31,14 @@ export async function loadData() {
     .map(h => h.split('/').pop())            // drop any path segments
     .filter(name => /^build_.*\.js$/.test(name));
 
-  console.log('Found build files →', filenames);
+  //console.log('Found build files →', filenames);
 
   const builders = {};
 
   // 5) For each builder file: fetch its source, read the name comment, then import it
   await Promise.all(filenames.map(async filename => {
     const fileURL = baseURL + filename;
-    console.log('  Loading builder →', fileURL);
+    //console.log('  Loading builder →', fileURL);
 
     try {
       // 5a) Fetch raw source to grab the leading `// PolytopeName`
@@ -58,7 +58,7 @@ export async function loadData() {
       const builderFn = Object.values(mod).find(exp => typeof exp === 'function');
       if (builderFn) {
         builders[polyName] = builderFn;
-        console.log(`    Registered builder: ${polyName}`);
+        //console.log(`    Registered builder: ${polyName}`);
       }
     } catch (err) {
       console.warn(`Error loading builder ${filename}:`, err);

@@ -5,6 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Polytope Viewer</title>
 
+  <!-- 1) Global error handler: catches parse errors in *any* <script>, including modules -->
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      const info = `${source}:${lineno}:${colno} — ${message}`;
+      console.error(info);
+      const pre = document.createElement('pre');
+      pre.style.color = 'red';
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.textContent = info;
+      document.body.appendChild(pre);
+      // Prevent the browser console from also swallowing the error.
+      return false;
+    };
+
+    // Also catch any unhandled Promise rejections (e.g. dynamic-import errors)
+    window.addEventListener('unhandledrejection', event => {
+      let info = 'Unhandled Rejection';
+      if (event.reason && event.reason.stack) {
+        // first two lines of the stack
+        const [first, second] = event.reason.stack.split('\n');
+        info = `${first}\n${second}`;
+      } else {
+        info += `: ${event.reason}`;
+      }
+      console.error(info);
+      const pre = document.createElement('pre');
+      pre.style.color = 'red';
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.textContent = info;
+      document.body.appendChild(pre);
+    });
+  </script>
+
   <!-- CSS -->
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/desktop.css" media="(min-width: 600px)">
@@ -13,28 +46,16 @@
 <body>
   <div id="viewer-canvas"></div>
 
-  <!--
-    Load QuickHull3D and debug via esm.sh, which serves valid ES modules
-    even for CJS packages. Then bootstrap your app.
-  -->
+  <!-- 2) Load your ESM dependencies first -->
   <script type="module">
-    // 1) QuickHull3D as an ES module
     import qh from 'https://esm.sh/quickhull3d';
     window.qh = qh;
-
-    // 2) debug() wrapped correctly
     import createDebug from 'https://esm.sh/debug@4.3.4';
     window.debug = createDebug;
-
-    // 3) Start your app
-    import('./src/index.js')
-      .catch(err => {
-        console.error('Failed to start application:', err);
-        const msg = document.createElement('div');
-        msg.textContent = 'Error loading application. See console.';
-        msg.style.color = 'red';
-        document.body.appendChild(msg);
-      });
   </script>
+
+  <!-- 3) *Statically* import your app entrypoint
+        (so parse errors in index.js show up in window.onerror with the real file:line:col) -->
+  <script type="module" src="./src/index.js"></script>
 </body>
 </html>

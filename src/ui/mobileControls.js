@@ -101,13 +101,15 @@ export function setupMobileControls(state) {
   // Add color scheme dropdown that's present in desktop version
   const colorNames = Object.keys(state.colorSchemes);
   const schemeDropdown = createDropdown({
-    id: 'color-scheme-mobile',
-    label: 'Color Scheme',
-    options: colorNames,
-    value: state.settings.colorScheme,
-    onChange: v => {
-      state.setSetting('colorScheme', v);
-    }
+      id: 'color-scheme-mobile',
+      label: 'Color Scheme',
+      options: colorNames,
+      value: state.settings.colorScheme,
+      onChange: v => {
+	  state.setSetting('colorSchemeName',v);
+	  state.setSetting('colorScheme',state.colorSchemes[v])
+      }
+
   });
   menu.appendChild(schemeDropdown);
 

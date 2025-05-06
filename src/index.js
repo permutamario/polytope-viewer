@@ -15,7 +15,7 @@ async function main() {
 
   // 1. Load the polytope manifest (map of { name: builderFn })
   const polytopeManifest = await loadData();
-  console.log('Loaded polytope manifest:', Object.keys(polytopeManifest));
+  console.log('Loaded polytope manifest:', polytopeManifest);
 
   // 2. Initialize application state with just the manifest
   const state = initializeState(polytopeManifest);
@@ -24,13 +24,12 @@ async function main() {
   // 3. Populate list of available polytope names
   const names = Object.keys(polytopeManifest);
   state.polyNames = names;
+  console.log("Populated names of Polytopes.", names);
 
   // 4. Pick default polytope builder ("Permutahedron") and set its JSON
-  const buildPerm = polytopeManifest['Tetrahedron'];
-  if (buildPerm) {
-    const permute = buildPerm();
-    state.setSetting('currentPolytope', permute);
-  }
+    state.setPolytope("Permutahedron");
+    console.log(state.currentPolytope);
+    console.log(state.currentPolytope.name);
 
   // 5. Build UI controls based on platform
   if (isMobile) {

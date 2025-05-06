@@ -7,6 +7,7 @@
 
 export class Polytope {
   constructor(vertices) {
+	this.name = 'DEFAULT';
     this.vertices = vertices;
     this.faces = [];
     this.edges = [];
@@ -19,8 +20,7 @@ export class Polytope {
       // Use QuickHull3D from the global scope (loaded via a module script)
 
       const faces = qh(this.vertices,{skipTriangulation: true});
-      console.log(faces)
-
+      this.faces = faces;
       
   }
 

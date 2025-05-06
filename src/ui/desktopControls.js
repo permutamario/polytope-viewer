@@ -69,7 +69,8 @@ export function setupDesktopControls(state) {
 	options: colorNames,
 	value: state.settings.colorScheme,
 	onChange: v => {
-	    state.setSetting('colorScheme',v)
+	    state.setSetting('colorSchemeName',v);
+	    state.setSetting('colorScheme',state.colorSchemes[v])
 	}
     });
     container.appendChild(schemeDropdown);
