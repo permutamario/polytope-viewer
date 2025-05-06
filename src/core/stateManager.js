@@ -14,7 +14,17 @@ let state = {};
 export function initializeState(data) {
   state = {
     // Loaded manifest & geometries
-    data,
+      data,
+
+      polytope: {
+	  name: "Default", //
+	  vertices: [], //
+	  dimension: 3, //
+	  center: [0,0,0] //
+	  faces: [] //
+	  edges: [] //
+	  
+      }
 
     // UI & rendering settings with sensible defaults
     settings: {

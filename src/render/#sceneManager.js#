@@ -152,6 +152,7 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+
 /**
  * Apply setting changes to the scene and mesh.
  */
