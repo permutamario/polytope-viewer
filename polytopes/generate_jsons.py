@@ -82,7 +82,7 @@ def sage_polytope_to_json_data(polytope_sage, name):
             ("faces", faces),
             ("_comment_coord_type", "float (forced)")
         ])
-        data["center"] = [float(i) for i in polytope_sage.center()] #Also has a center
+        data["center"] = compute_center_of_mass(polytope_sage,vertices) #Also has a center
     
         return data
 
