@@ -67,7 +67,7 @@ export function setupDesktopControls(state) {
 	id: 'color-scheme',
 	label: 'Color Scheme',
 	options: colorNames,
-	value: state.settings.colorScheme,
+	value: state.settings.colorSchemeName,
 	onChange: v => {
 	    state.setSetting('colorSchemeName',v);
 	    state.setSetting('colorScheme',state.colorSchemes[v])

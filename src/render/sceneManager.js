@@ -1,3 +1,4 @@
+
 // File: src/render/sceneManager.js
 
 import * as THREE from '../../vendor/three.module.js';
@@ -5,99 +6,105 @@ import CameraControls from '../../vendor/camera-controls/camera-controls.module.
 import { buildMesh } from './meshBuilder.js';
 import { detectPlatform } from '../core/utils.js';
 
-// Install camera-controls with THREE subset
+// Install CameraControls into THREE
 CameraControls.install({ THREE });
 
-let renderer;
-let scene;
-let camera;
-let controls;
-let meshGroup;
-let appState;
+let renderer, scene, camera, cameraControls, meshGroup, appState;
 const clock = new THREE.Clock();
 
 /**
- * Initializes the entire scene: renderer, scene, camera, controls, and mesh.
- * @param {Object} state - The application state object
+ * Compute a good camera distance so the whole polytope fits.
  */
-export function setupScene(state) {
-  appState = state;
-  initializeRenderer();
-  initializeScene();
-  initializeCamera();
-  initializeLights();
-  initializeControls();
-  setupResizeHandler();
-  buildAndDisplayMesh();
-  registerEventHandlers();
-  animate();
+function calculateCameraDistance(polytope, isMobile) {
+  const center = polytope.center || [0, 0, 0];
+  let maxD = 1;
+  for (const v of polytope.vertices || []) {
+    const d = Math.hypot(v[0] - center[0], v[1] - center[1], v[2] - center[2]);
+    maxD = Math.max(maxD, d);
+  }
+  const factor = isMobile ? 4 : 2.5;
+  return maxD * factor;
 }
 
 /**
- * Creates and configures the WebGL renderer.
+ * Build the mesh, add optional edges, reset and re-frame the camera & controls,
+ * then spin the camera a bit to “show off” the new polytope.
  */
-function initializeRenderer() {
-  renderer = new THREE.WebGLRenderer({
-    antialias: !detectPlatform(),
-    preserveDrawingBuffer: true
-  });
-  renderer.sortObjects = true;
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-  appState.renderer = renderer;
+function updatePolytope(reset = true) {
+  // remove old mesh
+  if (meshGroup) scene.remove(meshGroup);
+
+  // build new mesh
+  meshGroup = buildMesh(appState.currentPolytope, appState.settings);
+  scene.add(meshGroup);
+
+  // add edges if requested
+  if (appState.settings.showEdges) {
+    meshGroup.children.forEach(face => {
+      const geo = new THREE.EdgesGeometry(face.geometry);
+      const lines = new THREE.LineSegments(
+        geo,
+        new THREE.LineBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          depthWrite: false,
+          depthTest: true
+        })
+      );
+      lines.userData.isEdgeHelper = true;
+      face.add(lines);
+    });
+  }
+    renderer.render(scene,camera)
+    if (reset) {
+	// reset controls to clear any previous state
+	cameraControls.reset();
+
+	// compute center & distance
+	const center = appState.currentPolytope.center || [0, 0, 0];
+	const distance = calculateCameraDistance(appState.currentPolytope, detectPlatform());
+
+	// position camera looking at center
+	cameraControls.setPosition(center[0],center[1],center[2] + 1.2*distance,false);
+	cameraControls.setLookAt(
+	    center[0], center[1], center[2] + distance,
+	    center[0], center[1], center[2],
+	    true
+	);
+
+	// pivot all rotations about the center, but still allow dolly
+	cameraControls.setTarget(center[0], center[1], center[2], true);
+
+	// — “Show‐off” spin: a quick quarter‐turn around the vertical (y) axis
+	//    Adjust angle or transition duration as desired.
+	cameraControls.rotate(Math.PI/7, -Math.PI/6, true);
+    }
 }
 
 /**
- * Sets up the Three.js scene.
+ * Apply individual setting changes that affect only appearance or animation.
  */
-function initializeScene() {
-  scene = new THREE.Scene();
-  appState.scene = scene;
+function updateSettings(key, value) {
+  switch (key) {
+  case 'showEdges':
+      updatePolytope(false);
+      break;
+  case 'colorScheme':
+      updatePolytope(false);
+      break;
+    case 'faceOpacity':
+      updatePolytope(false);
+      break;
+    case 'animation':
+      // animate() reads appState.settings.animation
+      break;
+    default:
+      break;
+  }
 }
 
 /**
- * Configures the perspective camera.
- */
-function initializeCamera() {
-  camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-  scene.add(camera);
-  appState.camera = camera;
-}
-
-/**
- * Adds ambient and directional lighting.
- */
-function initializeLights() {
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  scene.add(ambient);
-  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
-  directional.position.set(5, 10, 7.5);
-  scene.add(directional);
-}
-
-/**
- * Sets up camera-controls for user interaction.
- */
-function initializeControls() {
-  controls = new CameraControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  appState.cameraControls = controls;
-}
-
-/**
- * Attaches the window resize handler.
- */
-function setupResizeHandler() {
-  window.addEventListener('resize', onWindowResize);
-}
-
-/**
- * Window resize event handler.
+ * Resize handler.
  */
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -106,145 +113,87 @@ function onWindowResize() {
 }
 
 /**
- * Builds the mesh group and adds it to the scene, with edges if enabled.
- */
-function buildAndDisplayMesh() {
-  meshGroup = buildMesh(appState.currentPolytope, appState.settings);
-  scene.add(meshGroup);
-  if (appState.settings.showEdges) {
-    addEdges(meshGroup);
-  }
-  frameCamera();
-}
-
-/**
- * Registers named event handlers for state changes.
- */
-function registerEventHandlers() {
-  appState.on('polytopeChanged', onPolytopeChanged);
-  appState.on('settingsChanged', onSettingsChanged);
-}
-
-/**
- * Handler for polytopeChanged: rebuilds mesh and updates view.
- */
-function onPolytopeChanged() {
-  scene.remove(meshGroup);
-  meshGroup = buildMesh(appState.currentPolytope, appState.settings);
-  scene.add(meshGroup);
-  if (appState.settings.showEdges) {
-    addEdges(meshGroup);
-  }
-  frameCamera();
-}
-
-/**
- * Handler for settingsChanged: rebuilds or updates mesh according to key.
- * @param {{ key: string, value: any }} change
- */
-function onSettingsChanged(change) {
-  const key = change.key;
-  if (key === 'colorScheme' || key === 'faceOpacity') {
-    scene.remove(meshGroup);
-    meshGroup = buildMesh(appState.currentPolytope, appState.settings);
-    scene.add(meshGroup);
-    if (appState.settings.showEdges) {
-      addEdges(meshGroup);
-    }
-  } else if (key === 'showEdges') {
-    if (appState.settings.showEdges) {
-      addEdges(meshGroup);
-    } else {
-      removeEdges(meshGroup);
-    }
-  }
-  // animation flag is handled in the render loop
-}
-
-/**
- * Continuously renders the scene and applies auto-rotation.
+ * Main render loop.
  */
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+
   if (appState.settings.animation) {
-    controls.rotate(-Math.PI / 8 * delta, 0, false);
+    cameraControls.rotate(-Math.PI / 8 * delta, 0, false);
   }
-  controls.update(delta);
-  renderer.render(scene, camera);
+
+  // only re-render when controls update
+  if (cameraControls.update(delta)) {
+    renderer.render(scene, camera);
+  }
 }
 
 /**
- * Frames the camera to fit the current polytope in view.
+ * Initialize everything.
  */
-function frameCamera() {
-  const polytope = appState.currentPolytope;
-  const center = polytope.center || [0, 0, 0];
-  const maxDistance = Math.max(
-    1,
-    ...polytope.vertices.map(v => Math.hypot(
-      v[0] - center[0],
-      v[1] - center[1],
-      v[2] - center[2]
-    ))
+export function setupScene(state) {
+  appState = state;
+
+  // — Renderer
+  renderer = new THREE.WebGLRenderer({
+    antialias: !detectPlatform(),
+    preserveDrawingBuffer: true
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  // mount point
+  let container = document.getElementById('viewer-canvas');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'viewer-canvas';
+    document.body.appendChild(container);
+  }
+  container.appendChild(renderer.domElement);
+
+  // — Scene & Camera
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
   );
-  const factor = detectPlatform() ? 4 : 2.5;
-  const distance = maxDistance * factor;
-  controls.setLookAt(
-    center[0], center[1], center[2] + distance,
-    center[0], center[1], center[2],
-    true
-  );
-}
+  scene.add(camera);
 
-/**
- * Adds edge helpers to each face mesh in the group.
- * @param {THREE.Group} group
- */
-function addEdges(group) {
-  group.children.forEach(faceMesh => {
-    const edges = new THREE.EdgesGeometry(faceMesh.geometry);
-    const line = new THREE.LineSegments(
-      edges,
-      new THREE.LineBasicMaterial({
-        color: 0x000000,
-        transparent: true,
-        depthWrite: false,
-        depthTest: true
-      })
-    );
-    line.userData.isEdgeHelper = true;
-    faceMesh.add(line);
-  });
-}
+  // — Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(5, 10, 7.5);
+  scene.add(dir);
 
-/**
- * Removes edge helpers from each face mesh in the group.
- * @param {THREE.Group} group
- */
-function removeEdges(group) {
-  group.children.forEach(faceMesh => {
-    faceMesh.children
-      .filter(child => child.userData.isEdgeHelper)
-      .forEach(helper => faceMesh.remove(helper));
-  });
-}
+  // — CameraControls
+  cameraControls = new CameraControls(camera, renderer.domElement);
+  cameraControls.enableDamping = true;
+  // map interactions
+  cameraControls.mouseButtons.left   = CameraControls.ACTION.ROTATE;
+  cameraControls.mouseButtons.middle = CameraControls.ACTION.DOLLY;
+  cameraControls.mouseButtons.right  = CameraControls.ACTION.OFFSET;
+  cameraControls.mouseButtons.wheel  = CameraControls.ACTION.DOLLY;
+  cameraControls.touches.one   = CameraControls.ACTION.TOUCH_ROTATE;
+  cameraControls.touches.two   = CameraControls.ACTION.TOUCH_DOLLY;
+  cameraControls.touches.three = CameraControls.ACTION.TOUCH_OFFSET;
+  cameraControls.minPolarAngle = -Infinity;
+  cameraControls.maxPolarAngle = Infinity;
 
-/**
- * Disposes of all resources and event listeners.
- */
-export function disposeScene() {
-  window.removeEventListener('resize', onWindowResize);
-  controls.dispose();
-  renderer.dispose();
-  scene.traverse(obj => {
-    if (obj.geometry) obj.geometry.dispose();
-    if (obj.material) {
-      if (Array.isArray(obj.material)) {
-        obj.material.forEach(m => m.dispose());
-      } else {
-        obj.material.dispose();
-      }
-    }
-  });
+  // expose to state
+  state.renderer       = renderer;
+  state.scene          = scene;
+  state.camera         = camera;
+  state.cameraControls = cameraControls;
+
+  // events
+  window.addEventListener('resize', onWindowResize);
+  state.on('polytopeChanged', updatePolytope);
+  state.on('settingsChanged', ({ key, value }) => updateSettings(key, value));
+
+  // initial build & start loop
+  updatePolytope();
+  animate();
 }

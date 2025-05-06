@@ -159,7 +159,6 @@ polytope-viewer/
 
 1. **Add a new polytope**:
    * Create a builder in `polytopes/build_functions/` that returns a `Polytope`.
-   * Add a new entry in `polytopes/manifest.json` with `name` and `builder`.
    * The UI dropdown and scene will pick it up automatically.
 
 2. **New controls**:

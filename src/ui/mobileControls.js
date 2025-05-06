@@ -104,7 +104,7 @@ export function setupMobileControls(state) {
       id: 'color-scheme-mobile',
       label: 'Color Scheme',
       options: colorNames,
-      value: state.settings.colorScheme,
+      value: state.settings.colorSchemeName,
       onChange: v => {
 	  state.setSetting('colorSchemeName',v);
 	  state.setSetting('colorScheme',state.colorSchemes[v])
