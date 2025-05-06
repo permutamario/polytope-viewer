@@ -178,12 +178,27 @@ function updateSettings(key, value, state) {
       break;
 
     case 'faceOpacity':
-      if (currentMesh && currentMesh.material) {
-        currentMesh.material.opacity = value;
+      if (currentMesh) {
+        // Handle array of materials case
+        if (Array.isArray(currentMesh.material)) {
+          currentMesh.material.forEach(mat => {
+            mat.opacity = value;
+            mat.transparent = value < 1;
+            mat.needsUpdate = true;
+            
+            // Ensure proper depth handling for transparency
+            mat.depthWrite = value >= 0.95;
+          });
+        } 
+        // Handle single material case
+        else if (currentMesh.material) {
+          currentMesh.material.opacity = value;
           currentMesh.material.transparent = value < 1;
-	  scene.remove(currentMesh);
-	  currentMesh = buildMesh(state.settings.currentPolytope,state);
-	  scene.add(currentMesh);
+          currentMesh.material.needsUpdate = true;
+          
+          // Ensure proper depth handling for transparency
+          currentMesh.material.depthWrite = value >= 0.95;
+        }
       }
       break;
 
@@ -207,7 +222,6 @@ function updateSettings(key, value, state) {
     // Extend with other settings as needed
   }
 }
-
 /**
  * Clean up resources when needed.
  */

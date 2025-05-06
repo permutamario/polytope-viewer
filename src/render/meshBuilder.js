@@ -41,7 +41,8 @@ export function buildMesh(polytope, state) {
   geom.computeVertexNormals();
 
   // --- Materials per face-group ---
-  const defaultOpacity = settings.opacity ?? 0.8;
+  const defaultOpacity = settings.faceOpacity ?? 0.8;
+  const isTransparent = defaultOpacity < 1;
   const materialType = detectPlatform()
     ? THREE.MeshLambertMaterial
     : THREE.MeshStandardMaterial;
@@ -53,9 +54,10 @@ export function buildMesh(polytope, state) {
     const colorHex = schemeColors[gi % schemeColors.length];
     const matOpts = {
       color: colorHex,
-      transparent: true,
+      transparent: isTransparent,
       opacity: defaultOpacity,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      depthWrite: defaultOpacity >= 0.95
     };
     // PBR props if standard
     if (materialType === THREE.MeshStandardMaterial) {
