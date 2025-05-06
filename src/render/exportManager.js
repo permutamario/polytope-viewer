@@ -1,8 +1,8 @@
 // src/render/exportManager.js
 import { detectPlatform } from '../core/utils.js';
 import { getState } from '../core/stateManager.js';
-// Uncomment and fix the import - this is likely the core issue
-import GIF from '../../vendor/gif.js/gif.js';
+// Don't use ES module import since GIF.js isn't exported as an ES module
+// The library is likely loaded via script tag and available globally
 
 /**
  * Export the current WebGL canvas as a PNG image.
@@ -42,6 +42,8 @@ export function exportPNG(renderer, scene, camera) {
  * @param {number} quality  - GIF.js quality (1-30, lower = better) (default 10)
  */
 export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quality = 10) {
+  // Alert user that we're starting GIF creation
+  alert("Starting GIF creation. This may take a moment. Check the console for progress updates.");
   console.log(`Creating GIF: ${duration}s @ ${fps} FPS, quality ${quality}`);
 
   // Adjust parameters for mobile
@@ -57,7 +59,7 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
   }
 
   // First check - verify GIF library is available
-  if (typeof GIF === 'undefined') {
+  if (typeof window.GIF === 'undefined') {
     console.error("GIF.js library not loaded.");
     alert("GIF export requires the GIF.js library. Please check the console for more details.");
     return;
@@ -81,11 +83,11 @@ export function exportGIF(renderer, scene, camera, duration = 3, fps = 15, quali
 
   try {
     // Prepare GIF.js encoder with full path to worker
-    const gif = new GIF({
+    const gif = new window.GIF({
       workers: 2,
       quality: actualQuality,
       // Fix worker path if needed - ensure this resolves correctly
-      workerScript: './vendor/gif.js/gif.worker.js'  // Changed path from '../vendor' to './vendor'
+      workerScript: '/vendor/gif.js/gif.worker.js'  // Use absolute path from root
     });
 
     // Progress callback
