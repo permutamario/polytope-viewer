@@ -88,7 +88,7 @@ polytope-viewer/
 
   * Polytope selector dropdown.
   * Toggles/sliders for rotation, opacity, edges, color.
-  * Export buttons (PNG & GIF).
+  * Export buttons (PNG & GIF & Sagemath code).
   * Hooks control events to `state.setSetting()`.
 
 * **mobileControls.js**: Builds mobile layout:
