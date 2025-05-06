@@ -2,7 +2,7 @@
 import { detectPlatform } from '../core/utils.js';
 import { getState } from '../core/stateManager.js';
 //import { toggleAutorotation } from './sceneManager.js';
-//import GIF from '../../vendor/gif.js/gif.js';
+import GIF from '../../vendor/gif.js/gif.js';
 
 /**
  * Export the current WebGL canvas as a PNG image.
