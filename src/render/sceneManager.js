@@ -180,7 +180,10 @@ function updateSettings(key, value, state) {
     case 'faceOpacity':
       if (currentMesh && currentMesh.material) {
         currentMesh.material.opacity = value;
-        currentMesh.material.transparent = value < 1;
+          currentMesh.material.transparent = value < 1;
+	  scene.remove(currentMesh);
+	  currentMesh = buildMesh(state.settings.currentPolytope,state);
+	  scene.add(currentMesh);
       }
       break;
 
