@@ -1,69 +1,56 @@
 // File: src/core/loader.js
 
 /**
- * Load all JS builder files from /polytopes/build_functions/,
- * parse their top‐line comment (“// PolytopeName”) for the name,
- * dynamically import each module, and return a map of builders.
+ * Load all JS builder files listed in
+ *   /polytopes/build_functions/builders.json
+ * then dynamically import each module and return a map of builders.
  *
- * Works under python3 -m http.server or any static HTTP host.
+ * builders.json should live alongside your builder .js files, e.g.:
+ *   [
+ *     "build_tetrahedron.js",
+ *     "build_cube.js",
+ *     "build_octahedron.js",
+ *     // …
+ *   ]
  *
- * @returns {Promise<Record<string, Function>>}
+ * @returns {Promise<Record<string,Function>>}
  */
 export async function loadData() {
-  // 1) Point at the correct folder:
+  // Base URL for your builders folder:
   const baseURL = `${window.location.origin}/polytope-viewer/polytopes/build_functions/`;
-  //console.log('Loader baseURL →', baseURL);
+  const manifestURL = baseURL + 'builders.json';
 
-  // 2) Fetch the directory listing HTML
-  const dirResp = await fetch(baseURL);
-  if (!dirResp.ok) {
-    throw new Error(`Could not list builder_functions at ${baseURL} (status ${dirResp.status})`);
+  // 1) Fetch the manifest
+  const resp = await fetch(manifestURL);
+  if (!resp.ok) {
+    throw new Error(`Could not load builders manifest at ${manifestURL}: ${resp.status}`);
   }
-  const dirHtml = await dirResp.text();
+  const fileList = await resp.json();
 
-  // 3) Parse out all <a> links and extract href filenames
-  const doc     = new DOMParser().parseFromString(dirHtml, 'text/html');
-  const rawHrefs = Array.from(doc.querySelectorAll('a[href]'))
-    .map(a => a.getAttribute('href'));
-
-  // 4) Keep only files matching build_*.js
-  const filenames = rawHrefs
-    .map(h => h.split('/').pop())            // drop any path segments
-    .filter(name => /^build_.*\.js$/.test(name));
-
-  //console.log('Found build files →', filenames);
-
+  // 2) Import each builder and collect into an object
   const builders = {};
+  await Promise.all(
+    fileList.map(async (filename) => {
+      const fileURL = baseURL + filename;
+      try {
+        // dynamic import; webpackIgnore ensures it uses the raw URL
+        const mod = await import(/* webpackIgnore: true */ fileURL);
 
-  // 5) For each builder file: fetch its source, read the name comment, then import it
-  await Promise.all(filenames.map(async filename => {
-    const fileURL = baseURL + filename;
-    //console.log('  Loading builder →', fileURL);
+        // pick the first exported function as the builder
+        const builderFn = Object.values(mod).find((exp) => typeof exp === 'function');
+        if (!builderFn) {
+          console.warn(`No function export found in ${filename}`);
+          return;
+        }
 
-    try {
-      // 5a) Fetch raw source to grab the leading `// PolytopeName`
-      const srcResp = await fetch(fileURL);
-      if (!srcResp.ok) {
-        console.warn(`Failed to fetch builder source: ${filename}`);
-        return;
-      }
-      const sourceText = await srcResp.text();
-      const firstLine  = sourceText.split('\n', 1)[0].trim();
-      const polyName   = firstLine.startsWith('//')
-        ? firstLine.slice(2).trim()
-        : filename.replace('.js', '');
-
-      // 5b) Dynamically import the module and grab its first function export
-      const mod       = await import(fileURL);
-      const builderFn = Object.values(mod).find(exp => typeof exp === 'function');
-      if (builderFn) {
+        // derive polytope name: strip "build_" prefix and ".js" suffix
+        const polyName = filename.replace(/^build_/, '').replace(/\.js$/, '');
         builders[polyName] = builderFn;
-        //console.log(`    Registered builder: ${polyName}`);
+      } catch (err) {
+        console.warn(`Error loading builder "${filename}":`, err);
       }
-    } catch (err) {
-      console.warn(`Error loading builder ${filename}:`, err);
-    }
-  }));
+    })
+  );
 
   return builders;
 }
