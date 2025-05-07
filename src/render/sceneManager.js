@@ -108,7 +108,15 @@ function onWindowResize() {
 
 function animate() {
   requestAnimationFrame(animate);
-  cameraControls.update(clock.getDelta());
+  const delta = clock.getDelta();
+
+  cameraControls.update(delta);
+
+  // Auto-rotate the mesh group if enabled
+  if (appState.settings.animation && meshGroup) {
+    meshGroup.rotation.y += 0.2 * delta; // adjust rotation speed as needed
+  }
+
   renderer.render(scene, camera);
 }
 
