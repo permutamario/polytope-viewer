@@ -35,8 +35,8 @@ async function main() {
 
     // 5. Pick default polytope builder ("Permutahedron") and set its JSON
     state.setPolytope("Permutahedron");
-    console.log(state.currentPolytope);
-    console.log(state.currentPolytope.name);
+    console.log("Current Polytope", state.currentPolytope);
+    console.log("Current Polytope Name", state.currentPolytope.polyName);
 
 
     // 6. Build UI controls based on platform

@@ -1,17 +1,10 @@
 [
   "build_associahedron.js",
-  "build_cube.js",
   "build_cyclohedron.js",
-  "build_dodecahedron.js",
-  "build_icosahedron.js",
-  "build_octahedron.js",
-  "build_permutahedron_B3.js",
   "build_permutahedron.js",
-  "build_root_polytope_A3.js",
-  "build_root_polytope_B3.js",
-  "build_root_polytope_C3.js",
-  "build_root_polytope_H3.js",
+  "build_root_polytope.js",
   "build_stellahedron.js",
-  "build_tetrahedron.js",
-  "build_multiplihedron.js"
+  "build_multiplihedron.js",
+"build_orbit_polytope.js",	
+"build_platonic_solids.js"	
 ]

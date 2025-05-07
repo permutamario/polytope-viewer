@@ -1,70 +1,41 @@
-/* styles/desktop.css */
-/* DESKTOP-SPECIFIC LAYOUTS AND CONTROLS */
-
-body {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Sidebar for controls */
+/* === LEFT SIDEBAR === */
 #controls {
   position: absolute;
-  top: 20px;
   left: 20px;
-  width: 300px !important; /* You can adjust the width */
-  padding: 20px;
-  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
+  top: 20px;
+  width: 300px;
+  background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  z-index: 1000; /* Ensure it appears above the renderer */
-  max-height: 90vh;
-  overflow-y: auto; /* Allow scrolling if controls don't fit */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  font-family: sans-serif;
+  z-index: 1000;
 }
 
-#controls .checkbox-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+#controls .control {
   margin-bottom: 15px;
-}
-
-#controls .checkbox-container label {
-  margin-bottom: 0;
-  flex-grow: 1;
-  text-align: left;
-}
-
-#controls .checkbox-container input[type="checkbox"] {
-  margin-left: 15px;
 }
 
 #controls label {
   display: block;
-  margin-bottom: 15px;
+  margin-bottom: 6px;
   font-weight: bold;
   color: #444;
 }
 
-#controls input[type=range] {
-  width: 100%;
-  margin-bottom: 12px;
-}
-
+#controls input[type="text"],
 #controls select {
   width: 100%;
   padding: 6px;
-  margin-bottom: 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
   background-color: #fafafa;
 }
 
 #controls button {
-  display: block;
   width: 100%;
   padding: 10px;
-  margin-bottom: 10px;
+  margin-top: 10px;
   background-color: #4285f4;
   border: none;
   border-radius: 4px;
@@ -72,14 +43,80 @@ body {
   font-weight: bold;
   cursor: pointer;
 }
+
 #controls button:hover {
   background-color: #3367d6;
 }
 
-/* Canvas grows to fill remaining space */
-#viewer-canvas {
-  width: 100vw;
-  height: 100vh;
-  display: block;
-  touch-action: none;
+
+/* === RIGHT SIDEBAR: PARAMETER CONTROLS === */
+#parameter-controls {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  width: 300px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  font-family: sans-serif;
+  z-index: 1000;
 }
+
+#parameter-controls .control {
+  margin-bottom: 15px;
+}
+
+#parameter-controls label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #444;
+}
+
+#parameter-controls input[type="text"],
+#parameter-controls select {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fafafa;
+}
+
+#parameter-controls button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background-color: #4285f4;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#parameter-controls button:hover {
+  background-color: #3367d6;
+}
+
+
+/* === NOTIFICATION TOAST === */
+.notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  font-family: sans-serif;
+  font-size: 16px;
+  max-width: 80%;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
