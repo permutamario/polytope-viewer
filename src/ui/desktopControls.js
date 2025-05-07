@@ -37,7 +37,9 @@ export function setupDesktopControls(state) {
 	id: 'animation-toggle',
 	label: 'Autorotate',
 	checked: state.settings.animation,
-	onChange: v => state.setSetting('animation', v)
+	onChange: v => {
+	    state.setSetting('animation', v);
+	}
     });
     container.appendChild(animToggle);
 

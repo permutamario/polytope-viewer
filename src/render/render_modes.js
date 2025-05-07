@@ -14,7 +14,7 @@ export const renderModes = {
     Glossy:      { material: 'glossy',    lighting: 'surround'      },
     Wireframe:   { material: 'wireframe', lighting: 'studio'        },
     Backface:    { material: 'backface',  lighting: 'studio'        },
-    Glass:       { material: 'glass',      lighting: 'studio'       },
+    Glass:       { material: 'glass',      lighting: 'surround'     },
 };
 
 export const availableRenderModes = Object.keys(renderModes);

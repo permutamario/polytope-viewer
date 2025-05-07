@@ -26,6 +26,9 @@ function calculateCameraDistance(polytope, isMobile) {
 }
 
 function updatePolytope(reset = true) {
+  // ⬇️ Preserve existing rotation (if any)
+  const oldRotation = meshGroup ? meshGroup.rotation.clone() : null;
+
   // remove old group
   if (meshGroup) scene.remove(meshGroup);
 
@@ -33,7 +36,12 @@ function updatePolytope(reset = true) {
   meshGroup = buildMesh(appState.currentPolytope, appState.settings);
   scene.add(meshGroup);
 
-  // only apply material+lighting in NON-wireframe
+  // ⬇️ Restore previous rotation if available
+  if (oldRotation) {
+    meshGroup.rotation.copy(oldRotation);
+  }
+
+  // apply render mode if not wireframe
   if (appState.settings.renderMode.material !== 'wireframe') {
     applyRenderMode(
       scene,
@@ -43,7 +51,7 @@ function updatePolytope(reset = true) {
     );
   }
 
-  // only draw the old “showEdges” overlay if NOT wireframe
+  // showEdges overlay
   if (
     appState.settings.showEdges &&
     appState.settings.renderMode.material !== 'wireframe'
@@ -61,10 +69,10 @@ function updatePolytope(reset = true) {
   // initial render
   renderer.render(scene, camera);
 
-  // optional “show‐off” spin
+  // camera reset
   if (reset) {
     cameraControls.reset();
-    const center   = appState.currentPolytope.center || [0, 0, 0];
+    const center = appState.currentPolytope.center || [0, 0, 0];
     const distance = calculateCameraDistance(
       appState.currentPolytope,
       detectPlatform()
@@ -89,6 +97,7 @@ function updatePolytope(reset = true) {
   }
 }
 
+
 function updateSettings(key, value) {
   switch (key) {
     case 'showEdges':
@@ -98,7 +107,7 @@ function updateSettings(key, value) {
       updatePolytope(false);
       break;
 
-    case 'animation':
+  case 'animation':
       appState.settings.animation = value;
       updatePolytope(false);
       break;
@@ -187,7 +196,7 @@ export function setupScene(state) {
   // event listeners
   window.addEventListener('resize', onWindowResize);
   state.on('polytopeChanged', () => updatePolytope());
-  state.on('settingsChanged', ({ key }) => updateSettings(key));
+    state.on('settingsChanged', ({ key ,value}) => updateSettings(key,value));
 
   // initial draw & loop
   updatePolytope();
