@@ -182,9 +182,9 @@ const vertices = [
 export function build_permutahedron(params = { type: 'A3' }) {
   let vertices;
   switch (params.type) {
-    case 'BC': vertices = buildTypeBC(); break;
+    case 'B3/C3': vertices = buildTypeBC(); break;
     //case 'H3': vertices = buildTypeH3(); break;
-    case 'A':
+    case 'A3':
     default: vertices = buildTypeA(); break;
   }
 
