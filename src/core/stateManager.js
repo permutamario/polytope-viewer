@@ -124,6 +124,8 @@ export function initializeState(polytopeManifest) {
 
       // Change the polytope and notify everyone.
       setPolytope(name) {
+	  console.log(name);
+	  console.log(this.polytopeManifest);
 	  this.currentPolytope = this.polytopeManifest[name]();
 	  this.currentBuilder  = this.polytopeManifest[name];
 	  this.currentPolytope.name = name;
