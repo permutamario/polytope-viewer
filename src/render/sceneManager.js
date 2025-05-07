@@ -89,16 +89,25 @@ function updatePolytope(reset = true) {
   }
 }
 
-function updateSettings(key /*, value */) {
-  if (
-    key === 'showEdges' ||
-    key === 'colorScheme' ||
-    key === 'faceOpacity' ||
-    key === 'renderModeName'
-  ) {
-    updatePolytope(false);
+function updateSettings(key, value) {
+  switch (key) {
+    case 'showEdges':
+    case 'colorScheme':
+    case 'faceOpacity':
+    case 'renderModeName':
+      updatePolytope(false);
+      break;
+
+    case 'animation':
+      appState.settings.animation = value;
+      break;
+
+    default:
+      // do nothing for unrecognized keys
+      break;
   }
 }
+
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -113,7 +122,7 @@ function animate() {
   cameraControls.update(delta);
 
   // Auto-rotate the mesh group if enabled
-  if (appState.settings.animation && meshGroup) {
+  if (state.settings.animation && meshGroup) {
     meshGroup.rotation.y += 0.2 * delta; // adjust rotation speed as needed
   }
 
