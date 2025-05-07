@@ -16,12 +16,25 @@ export class Polytope {
     this.computeCenter();
   }
 
-  computeHull() {
-      // Use QuickHull3D from the global scope (loaded via a module script)
 
-      const faces = qh(this.vertices,{skipTriangulation: true});
-      this.faces = faces;
-      
+  computeHull() {
+    // 1) get all faces (ngons)
+    const faces = qh(this.vertices, { skipTriangulation: true });
+    this.faces = faces;
+
+    // 2) build unique undirected edges from those faces
+    const edgeSet = new Set();
+    this.faces.forEach(face => {
+      const n = face.length;
+      for (let i = 0; i < n; i++) {
+        const a = face[i], b = face[(i + 1) % n];
+        // sort so “3-7” === “7-3”
+        const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+        edgeSet.add(key);
+      }
+    });
+    // store as [[i,j],…]
+    this.edges = Array.from(edgeSet, key => key.split('-').map(Number));
   }
 
   computeCenter() {

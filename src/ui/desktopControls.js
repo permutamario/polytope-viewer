@@ -8,6 +8,11 @@ import {
 } from './baseControls.js';
 import { exportPNG, exportGIF, exportToSageMath, exportToPolymake } from '../render/exportManager.js';
 
+import { availableLightingModes } from '../render/lighting_modes.js';
+import { availableMaterialOptions } from '../render/material_options.js';
+import { renderModes, availableRenderModes } from '../render/render_modes.js';
+
+
 /**
  * Assemble and mount desktop sidebar controls.
  */
@@ -30,7 +35,7 @@ export function setupDesktopControls(state) {
     // Rotation toggle
     const animToggle = createCheckbox({
 	id: 'animation-toggle',
-	label: 'Rotate',
+	label: 'Autorotate',
 	checked: state.settings.animation,
 	onChange: v => state.setSetting('animation', v)
     });
@@ -53,7 +58,7 @@ export function setupDesktopControls(state) {
     // 	id: 'face-color',
     // 	label: 'Face Color',
     // 	value: state.settings.faceColor,
-	
+    
     // 	onChange: v => {
     // 	    state.colorSchemes['Single Color'] = v;
     // 	    state.setSetting('faceColor', v);
@@ -74,7 +79,21 @@ export function setupDesktopControls(state) {
 	}
     });
     container.appendChild(schemeDropdown);
-					  
+    
+    // render chooser
+    const renderModeNames = availableRenderModes;
+    const renderModeDropdown = createDropdown({
+	id: 'rendering-mode',
+	label: 'Rendering Mode',
+	options: renderModeNames,
+	value: state.settings.renderModeName,
+	onChange: v => {
+	    state.setSetting('renderMode',renderModes[v]);
+	    state.setSetting('renderModeName', v);
+	    // this will trigger your updateSettings handler which calls applyLightingMode
+	}
+    });
+    container.appendChild(renderModeDropdown);
 
     
     // Show edges toggle
@@ -97,10 +116,10 @@ export function setupDesktopControls(state) {
     const gifBtn = createButton({
 	id: 'export-gif',
 	label: 'Export GIF',
-      onClick: () => {
-	  //exportGIF(state.renderer, state.scene, state.camera)
-	  showNotification("Mario has not enabled me yet 😢");
-      }
+	onClick: () => {
+	    //exportGIF(state.renderer, state.scene, state.camera)
+	    showNotification("Mario has not enabled me yet 😢");
+	}
     });
     container.appendChild(gifBtn);
 
@@ -129,40 +148,40 @@ export function setupDesktopControls(state) {
  * @param {number} duration - How long to show the notification in ms
  */
 function showNotification(message, duration = 3000) {
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.className = 'notification';
-  notification.textContent = message;
-  
-  // Style the notification
-  Object.assign(notification.style, {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    color: 'white',
-    padding: '12px 20px',
-    borderRadius: '8px',
-    zIndex: '1000',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-    textAlign: 'center',
-    fontFamily: 'sans-serif',
-    fontSize: '16px',
-    maxWidth: '80%'
-  });
-  
-  // Add to document
-  document.body.appendChild(notification);
-  
-  // Remove after duration
-  setTimeout(() => {
-    notification.style.opacity = '0';
-    notification.style.transition = 'opacity 0.5s ease';
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
     
-    // Remove from DOM after fade out
+    // Style the notification
+    Object.assign(notification.style, {
+	position: 'fixed',
+	top: '50%',
+	left: '50%',
+	transform: 'translate(-50%, -50%)',
+	backgroundColor: 'rgba(0, 0, 0, 0.8)',
+	color: 'white',
+	padding: '12px 20px',
+	borderRadius: '8px',
+	zIndex: '1000',
+	boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+	textAlign: 'center',
+	fontFamily: 'sans-serif',
+	fontSize: '16px',
+	maxWidth: '80%'
+    });
+    
+    // Add to document
+    document.body.appendChild(notification);
+    
+    // Remove after duration
     setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 500);
-  }, duration);
+	notification.style.opacity = '0';
+	notification.style.transition = 'opacity 0.5s ease';
+	
+	// Remove from DOM after fade out
+	setTimeout(() => {
+	    document.body.removeChild(notification);
+	}, 500);
+    }, duration);
 }

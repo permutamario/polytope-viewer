@@ -28,8 +28,12 @@ export function initializeState(polytopeManifest) {
 	      '#ff00ff', '#1e90ff', '#ffb6c1', '#00fa9a', '#ffd700',
 	      '#ff6347', '#7fffd4', '#ff4500', '#9370db', '#3cb371'
 	],
+	renderModeName : 'Standard', //
+	renderMode: '',//
       faceColor: '#156289',      // fallback face color
-      faceOpacity: 1,
+	faceOpacity: 1, //Initial Opacity
+	lightingSetting : "basic", // Lighting Type
+	materialMode : "flat", // Type of material
       vertexEmphasis: false,
 	vertexColor: '#ffffff',
 	showEdges: false,
@@ -37,7 +41,13 @@ export function initializeState(polytopeManifest) {
       // ...add more defaults as needed
     },
 
+      /**
+       *
+       * These are the different rendering options
+       *
+       */
 
+      renderOptions : {},
       /**
        *Color options should be read in
        *
