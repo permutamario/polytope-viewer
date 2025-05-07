@@ -122,7 +122,7 @@ function animate() {
   cameraControls.update(delta);
 
   // Auto-rotate the mesh group if enabled
-  if (state.settings.animation && meshGroup) {
+  if (appState.settings.animation && meshGroup) {
     meshGroup.rotation.y += 0.2 * delta; // adjust rotation speed as needed
   }
 
