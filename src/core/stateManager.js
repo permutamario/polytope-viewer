@@ -1,4 +1,28 @@
 
+// src/core/stateManager.js
+
+
+import { EventEmitter } from './utils.js';
+
+
+import {setupParameterControls  } from '../ui/parametricControls.js';
+
+
+
+
+// Internal event emitter for change notifications
+
+
+const emitter = new EventEmitter();
+
+
+
+
+
+// Application state object
+
+
+let state = {};
 
 /**
  * Initialize the application state with loaded data.
@@ -7,7 +31,6 @@
 export function initializeState(polytopeManifest) {
     state = {
 	polytopeManifest, // dictionary of {polytopeName, builder_function}
-
 	currentPolytope: {}, // Polytope.js object which holds the currently built polytope
 	currentBuilder: {}, // The current builder function
 
