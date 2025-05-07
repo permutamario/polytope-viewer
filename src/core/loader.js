@@ -11,11 +11,11 @@
  */
 export async function loadData() {
   // 1) Point at the correct folder:
-  const baseURL = `${window.location.origin}/polytopes/build_functions/`;
+  const baseURL = `${window.location.origin}/polytope-viewer/polytopes/build_functions/`;
   //console.log('Loader baseURL →', baseURL);
 
   // 2) Fetch the directory listing HTML
-  const dirResp = await fetch(baseURL);
+  const dirResp = await fetch(baseURL);x
   if (!dirResp.ok) {
     throw new Error(`Could not list builder_functions at ${baseURL} (status ${dirResp.status})`);
   }
