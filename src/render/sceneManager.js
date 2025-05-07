@@ -5,7 +5,7 @@ import CameraControls from '../../vendor/camera-controls/camera-controls.module.
 import { buildMesh } from './meshBuilder.js';
 import { detectPlatform } from '../core/utils.js';
 import { applyRenderMode } from './render_modes.js';
-N
+
 CameraControls.install({ THREE });
 
 let renderer, scene, camera, cameraControls, meshGroup, appState;
