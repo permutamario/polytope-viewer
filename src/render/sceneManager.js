@@ -100,6 +100,7 @@ function updateSettings(key, value) {
 
     case 'animation':
       appState.settings.animation = value;
+      updatePolytope(false);
       break;
 
     default:
