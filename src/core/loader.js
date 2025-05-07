@@ -15,7 +15,7 @@ export async function loadData() {
   //console.log('Loader baseURL →', baseURL);
 
   // 2) Fetch the directory listing HTML
-  const dirResp = await fetch(baseURL);x
+  const dirResp = await fetch(baseURL);
   if (!dirResp.ok) {
     throw new Error(`Could not list builder_functions at ${baseURL} (status ${dirResp.status})`);
   }
