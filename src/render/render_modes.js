@@ -24,8 +24,9 @@ export const availableRenderModes = Object.keys(renderModes);
  *  - rebuild the mesh’s material
  *  - reset the scene’s lights
  */
-export function applyRenderMode(scene, meshGroup, settings, modeKey) {
-  const preset = renderModes[modeKey] || renderModes.flat;
+export function applyRenderMode(scene, meshGroup, settings) {
+  const modeKey = settings.renderModeName;
+  const preset = renderModes[modeKey] || renderModes.Flat;
   const { material: mKey, lighting: lKey } = preset;
 
   // 1) swap out mesh materials

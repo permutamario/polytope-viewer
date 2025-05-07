@@ -5,11 +5,34 @@ import CameraControls from '../../vendor/camera-controls/camera-controls.module.
 import { buildMesh } from './meshBuilder.js';
 import { detectPlatform } from '../core/utils.js';
 import { applyRenderMode } from './render_modes.js';
-
+N
 CameraControls.install({ THREE });
 
 let renderer, scene, camera, cameraControls, meshGroup, appState;
 const clock = new THREE.Clock();
+
+
+/**
+ * Recursively dispose every geometry & material in a group.
+ */
+function disposeMeshGroup(group) {
+  group.traverse(obj => {
+    // any three.js object that holds a geometry
+    if (obj.geometry) {
+      obj.geometry.dispose();
+    }
+    // single material or array of materials
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(m => m.dispose());
+      } else {
+        obj.material.dispose();
+      }
+    }
+  });
+}
+
+
 
 function calculateCameraDistance(polytope, isMobile) {
   const center = polytope.center || [0, 0, 0];
@@ -26,17 +49,21 @@ function calculateCameraDistance(polytope, isMobile) {
 }
 
 function updatePolytope(reset = true) {
-  // ⬇️ Preserve existing rotation (if any)
+  //Preserve existing rotation (if any)
   const oldRotation = meshGroup ? meshGroup.rotation.clone() : null;
 
   // remove old group
-  if (meshGroup) scene.remove(meshGroup);
+  if (meshGroup) {
+    disposeMeshGroup(meshGroup);
+    scene.remove(meshGroup);
+    meshGroup = null;
+  }
 
   // build either lines or meshes
   meshGroup = buildMesh(appState.currentPolytope, appState.settings);
   scene.add(meshGroup);
 
-  // ⬇️ Restore previous rotation if available
+  // Restore previous rotation if available
   if (oldRotation) {
     meshGroup.rotation.copy(oldRotation);
   }
@@ -46,8 +73,7 @@ function updatePolytope(reset = true) {
     applyRenderMode(
       scene,
       meshGroup,
-      appState.settings,
-      appState.settings.renderModeName
+      appState.settings
     );
   }
 
@@ -96,6 +122,8 @@ function updatePolytope(reset = true) {
     cameraControls.rotate(Math.PI / 7, -Math.PI / 6, true);
   }
 }
+
+
 
 
 function updateSettings(key, value) {
