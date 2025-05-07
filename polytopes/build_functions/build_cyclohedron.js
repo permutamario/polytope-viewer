@@ -30,5 +30,10 @@ export function build_cyclohedron() {
   });
   // Project to R^3
   const verts3 = centered.map(v4 => basis.map(e => dot(v4,e)));
-  return new Polytope(verts3);
+  const poly = new Polytope(verts3, {
+    name: `Cyclohedron`,
+    parameters: {},
+    parameterSchema: {}
+  });
+return poly
 }

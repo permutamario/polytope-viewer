@@ -84,6 +84,11 @@ export function build_associahedron() {
   );
 
   // 8) return the convex hull in R^3
-  return new Polytope(verts3);
+  const poly = new Polytope(verts3, {
+    name: `Associahedron`,
+    parameters: {},
+    parameterSchema: {}
+  });
+return poly
 }
 

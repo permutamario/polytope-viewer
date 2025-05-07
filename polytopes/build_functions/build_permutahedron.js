@@ -179,7 +179,7 @@ const vertices = [
   return vertices;
 }
 // ---------- Unified Parametric Builder ----------
-export function build_permutahedron(params = { type: 'A' }) {
+export function build_permutahedron(params = { type: 'A3' }) {
   let vertices;
   switch (params.type) {
     case 'BC': vertices = buildTypeBC(); break;
@@ -198,8 +198,8 @@ export function build_permutahedron(params = { type: 'A' }) {
 build_permutahedron.defaults = {
   type: {
     type: 'dropdown',
-    options: ['A', 'BC'],
-    default: 'A',
+    options: ['A3', 'B3/C3'],
+    default: 'A3',
     name: 'Coxeter Type',
     description: 'Selects the root system that defines the permutahedron'
   }

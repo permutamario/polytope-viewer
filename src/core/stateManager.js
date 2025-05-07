@@ -143,10 +143,11 @@ export function initializeState(polytopeManifest) {
 	    this.currentPolytope = typeof params === 'object'
 		? builder(params)
 		: builder();
-
+	    console.log("Current name: ", this.currentPolytope.name);
 	    setupParameterControls(state);
 
-	    console.log(this.currentPolytope.parameterSchema);
+	    //console.log("Polytope Name:", name);
+	    //console.log("Parameters:" ,this.currentPolytope.parameterSchema);
 
 	    emitter.emit('polytopeChanged', {
 		name,

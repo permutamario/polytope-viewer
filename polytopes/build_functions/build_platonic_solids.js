@@ -3,7 +3,7 @@
 
 import { Polytope } from '../Polytope.js';
 
-export function build_platonic_solid(params = { type: 'cube' }) {
+export function build_platonic_solid(params = { type: 'Cube' }) {
   const phi = (1 + Math.sqrt(5)) / 2;
   const invPhi = 1 / phi;
   const type = params.type.toLowerCase();
@@ -71,8 +71,8 @@ export function build_platonic_solid(params = { type: 'cube' }) {
 build_platonic_solid.defaults = {
   type: {
     type: 'dropdown',
-    options: ['tetrahedron', 'cube', 'octahedron', 'dodecahedron', 'icosahedron'],
-    default: 'cube',
+    options: ['Tetrahedron', 'Cube', 'Octahedron', 'Dodecahedron', 'Icosahedron'],
+    default: 'Cube',
     name: 'Platonic Type',
     description: 'Choose which of the five Platonic solids to build'
   }

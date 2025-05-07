@@ -28,5 +28,10 @@ export function build_stellahedron() {
     v12[1] + v3[1],
     v12[2] + v3[2]
   ])));
-  return new Polytope(vertices);
+  const poly = new Polytope(vertices, {
+    name: `Stellahedron`,
+    parameters: {},
+    parameterSchema: {}
+  });
+return poly
 }
