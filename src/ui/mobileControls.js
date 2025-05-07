@@ -34,7 +34,7 @@ export function setupMobileControls(state) {
 	options: polyNames,
 	value: state.currentPolytope.name,
 	onChange: v => {
-	    state.setSetting(v);
+	    state.setPolytope(v);
 	}
     });
     
