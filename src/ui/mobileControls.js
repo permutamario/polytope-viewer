@@ -192,6 +192,14 @@ export function setupMobileControls(state) {
     menu.appendChild(exportButtonsContainer);
     
     document.body.appendChild(menu);
+
+    document.addEventListener('click', (event) => {
+        const isClickInsideMenu = menu.contains(event.target);
+        const isClickOnButton = optionsBtn.contains(event.target);
+        if (!isClickInsideMenu && !isClickOnButton && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+        }
+    });
 }
 
 
