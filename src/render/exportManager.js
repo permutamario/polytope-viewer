@@ -207,6 +207,69 @@ polytope = Polyhedron(vertices=vertices)
   }
 }
 
+/**
+ * Export the current polytope as Polymake code
+ * @param {Object} polytope - The polytope object with vertices
+ */
+export function exportToPolymake(polytope) {
+  if (!polytope || !polytope.vertices || polytope.vertices.length === 0) {
+    console.error("Cannot export: No polytope data available.");
+    alert("Cannot export: No polytope data available.");
+    return;
+  }
+  
+  try {
+    // Format vertices as a Polymake matrix
+    let verticesStr = "";
+    polytope.vertices.forEach(vertex => {
+      verticesStr += vertex.join(" ") + "\n";
+    });
+    
+    // Create Polymake code
+    const polymakeCode = `# Polymake code to create ${polytope.name} polytope
+
+use application "polytope";
+
+# Define the polytope from its vertices
+my $p = new Polytope(POINTS=>
+  [1 ${verticesStr.replace(/^/gm, "1 ")}]  # Homogeneous coordinates (prepend 1)
+);
+
+# Print basic information
+print "Polytope: ${polytope.name}\\n";
+print "Dimension: ", $p->DIM, "\\n";
+print "Number of vertices: ", $p->N_VERTICES, "\\n";
+print "F-vector: ", $p->F_VECTOR, "\\n";
+
+# Uncomment to visualize
+# $p->VISUAL;
+`;
+    
+    // Create and trigger download
+    downloadTextFile(polymakeCode, `${polytope.name.toLowerCase().replace(/\s+/g, '_')}_polymake.pl`);
+  } catch (error) {
+    console.error("Failed to export polytope to Polymake:", error);
+    alert("Error exporting to Polymake. Check console for details.");
+  }
+}
+
+/**
+ * Helper function to download text content as a file
+ * @param {string} content - The text content to download
+ * @param {string} filename - The name of the file
+ */
+function downloadTextFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
 
 /**
  * Export the current polytope as GLTF/GLB format
