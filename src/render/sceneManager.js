@@ -1,4 +1,4 @@
-// File: src/render/sceneManager.js (modified with minimal VR support)
+// File: src/render/sceneManager.js (with VR and controller interactions)
 
 import * as THREE from '../../vendor/three.module.js';
 import CameraControls from '../../vendor/camera-controls/camera-controls.module.js';
@@ -9,7 +9,201 @@ import { applyRenderMode } from './render_modes.js';
 CameraControls.install({ THREE });
 
 let renderer, scene, camera, cameraControls, meshGroup, appState;
+let controller1, controller2; // VR controllers
+let controllerGrip1, controllerGrip2; // Controller models
 const clock = new THREE.Clock();
+
+// VR interaction state
+const vrInteraction = {
+  rotating: false,
+  scaling: false,
+  panning: false,
+  lastPosition1: new THREE.Vector3(),
+  lastPosition2: new THREE.Vector3(),
+  initialDistance: 0,
+  initialScale: 1
+};
+
+// Create a simple controller representation
+function createControllerModel() {
+  const geometry = new THREE.CylinderGeometry(0.01, 0.02, 0.08, 16);
+  geometry.rotateX(-Math.PI / 2); // Orient the cylinder along the controller
+  const material = new THREE.MeshStandardMaterial({
+    color: 0x444444,
+    roughness: 0.5,
+    metalness: 0.5
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  
+  // Add a pointer/beam
+  const pointerGeometry = new THREE.CylinderGeometry(0.002, 0.001, 0.2, 8);
+  pointerGeometry.rotateX(-Math.PI / 2);
+  pointerGeometry.translate(0, 0, -0.1); // Position the pointer forward
+  const pointerMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const pointer = new THREE.Mesh(pointerGeometry, pointerMaterial);
+  mesh.add(pointer);
+  
+  // Add grip
+  const gripGeometry = new THREE.SphereGeometry(0.025, 16, 16);
+  const gripMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x2196f3,
+    roughness: 0.3,
+    metalness: 0.8
+  });
+  const grip = new THREE.Mesh(gripGeometry, gripMaterial);
+  grip.position.y = 0.04; // Offset from controller center
+  mesh.add(grip);
+  
+  return mesh;
+}
+
+// Set up VR controllers
+function setupVRControllers(renderer, scene) {
+  // Controller 1
+  controller1 = renderer.xr.getController(0);
+  controller1.userData.index = 0;
+  controller1.addEventListener('selectstart', onSelectStart);
+  controller1.addEventListener('selectend', onSelectEnd);
+  controller1.addEventListener('squeezestart', onSqueezeStart);
+  controller1.addEventListener('squeezeend', onSqueezeEnd);
+  scene.add(controller1);
+  
+  // Controller 2
+  controller2 = renderer.xr.getController(1);
+  controller2.userData.index = 1;
+  controller2.addEventListener('selectstart', onSelectStart);
+  controller2.addEventListener('selectend', onSelectEnd);
+  controller2.addEventListener('squeezestart', onSqueezeStart);
+  controller2.addEventListener('squeezeend', onSqueezeEnd);
+  scene.add(controller2);
+  
+  // Add visual models for the controllers
+  const controllerModel1 = createControllerModel();
+  const controllerModel2 = createControllerModel();
+  controller1.add(controllerModel1);
+  controller2.add(controllerModel2);
+  
+  return { controller1, controller2 };
+}
+
+// Handle controller select (primary button) press - rotate
+function onSelectStart(event) {
+  const controller = event.target;
+  vrInteraction.rotating = true;
+  
+  // Record current position for rotation reference
+  controller.getWorldPosition(vrInteraction.lastPosition1);
+  console.log(`Controller ${controller.userData.index} select start`);
+}
+
+function onSelectEnd(event) {
+  vrInteraction.rotating = false;
+  console.log(`Controller ${event.target.userData.index} select end`);
+}
+
+// Handle controller squeeze (grip button) press - pan/zoom
+function onSqueezeStart(event) {
+  const controller = event.target;
+  
+  if (controller.userData.index === 0) {
+    controller1.getWorldPosition(vrInteraction.lastPosition1);
+  } else {
+    controller2.getWorldPosition(vrInteraction.lastPosition2);
+  }
+  
+  // If both controllers are squeezing, enter scaling (zoom) mode
+  if (controller1.userData.squeezing && controller2.userData.squeezing) {
+    vrInteraction.scaling = true;
+    
+    // Calculate initial distance between controllers
+    const pos1 = new THREE.Vector3();
+    const pos2 = new THREE.Vector3();
+    controller1.getWorldPosition(pos1);
+    controller2.getWorldPosition(pos2);
+    vrInteraction.initialDistance = pos1.distanceTo(pos2);
+    
+    // Record initial scale
+    vrInteraction.initialScale = meshGroup.scale.x;
+  } else {
+    // Single controller squeeze = pan
+    vrInteraction.panning = true;
+  }
+  
+  controller.userData.squeezing = true;
+  console.log(`Controller ${controller.userData.index} squeeze start`);
+}
+
+function onSqueezeEnd(event) {
+  const controller = event.target;
+  controller.userData.squeezing = false;
+  
+  // Reset interaction states if needed
+  if (controller1 && controller2 && 
+      !controller1.userData.squeezing && !controller2.userData.squeezing) {
+    vrInteraction.panning = false;
+    vrInteraction.scaling = false;
+  }
+  
+  console.log(`Controller ${controller.userData.index} squeeze end`);
+}
+
+// Process controller interactions
+function updateVRInteractions() {
+  if (!meshGroup || !controller1 || !controller2) return;
+  
+  // Get current controller positions
+  const currentPos1 = new THREE.Vector3();
+  const currentPos2 = new THREE.Vector3();
+  controller1.getWorldPosition(currentPos1);
+  controller2.getWorldPosition(currentPos2);
+  
+  // ROTATION (select button)
+  if (vrInteraction.rotating) {
+    // Calculate movement direction
+    const movement = new THREE.Vector3().subVectors(currentPos1, vrInteraction.lastPosition1);
+    
+    // Apply rotation based on controller movement
+    meshGroup.rotation.y += movement.x * 2; // Horizontal movement = Y rotation
+    meshGroup.rotation.x += movement.y * 2; // Vertical movement = X rotation
+    
+    // Update last position
+    vrInteraction.lastPosition1.copy(currentPos1);
+  }
+  
+  // SCALING/ZOOMING (both grip buttons)
+  if (vrInteraction.scaling) {
+    // Calculate current distance between controllers
+    const currentDistance = currentPos1.distanceTo(currentPos2);
+    
+    // Calculate scale factor based on how controllers are moving
+    const scaleFactor = currentDistance / vrInteraction.initialDistance;
+    
+    // Apply scaling
+    const newScale = vrInteraction.initialScale * scaleFactor;
+    meshGroup.scale.set(newScale, newScale, newScale);
+  }
+  
+  // PANNING (single grip button)
+  if (vrInteraction.panning && !vrInteraction.scaling) {
+    // Only use active controller
+    const activeController = controller1.userData.squeezing ? controller1 : controller2;
+    const lastPos = controller1.userData.squeezing ? vrInteraction.lastPosition1 : vrInteraction.lastPosition2;
+    const currentPos = controller1.userData.squeezing ? currentPos1 : currentPos2;
+    
+    // Calculate movement vector
+    const movement = new THREE.Vector3().subVectors(currentPos, lastPos);
+    
+    // Apply movement to mesh position
+    meshGroup.position.add(movement.multiplyScalar(2));
+    
+    // Update last position
+    if (controller1.userData.squeezing) {
+      vrInteraction.lastPosition1.copy(currentPos1);
+    } else {
+      vrInteraction.lastPosition2.copy(currentPos2);
+    }
+  }
+}
 
 // New function to create a simple VR button without needing external files
 function createVRButton(renderer) {
@@ -19,7 +213,7 @@ function createVRButton(renderer) {
     vrButton.id = 'vr-button';
     vrButton.style.cssText = `
       position: absolute;
-      bottom: 20px;
+      bottom: 140px;
       left: 50%;
       transform: translateX(-50%);
       padding: 12px 24px;
@@ -43,10 +237,16 @@ function createVRButton(renderer) {
       vrButton.textContent = 'EXIT VR';
       xrSession = session;
       
+      // Set up controllers when entering VR
+      setupVRControllers(renderer, scene);
+      
       // Disable regular controls in VR
       if (cameraControls) {
         cameraControls.enabled = false;
       }
+      
+      // Show VR usage instructions
+      showVRInstructions();
     }
     
     // Handle ending VR session
@@ -59,13 +259,21 @@ function createVRButton(renderer) {
       if (cameraControls) {
         cameraControls.enabled = true;
       }
+      
+      // Reset polytope position and scale if it was modified in VR
+      if (meshGroup) {
+        meshGroup.position.set(0, 0, 0);
+        meshGroup.scale.set(1, 1, 1);
+      }
     }
     
     // Handle button click
     vrButton.onclick = function() {
       if (xrSession === null) {
         // Request a VR session
-        const sessionInit = { optionalFeatures: ['local-floor', 'bounded-floor'] };
+        const sessionInit = { 
+          optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] 
+        };
         navigator.xr.requestSession('immersive-vr', sessionInit)
           .then(onSessionStarted)
           .catch(error => {
@@ -102,6 +310,54 @@ function createVRButton(renderer) {
   return null;
 }
 
+// Display VR controls instructions
+function showVRInstructions() {
+  // Create a text geometry to display in VR
+  const message = 
+    "VR CONTROLS:\n" +
+    "• TRIGGER: Rotate (point & hold)\n" +
+    "• GRIP: Pan (single) or Zoom (both)";
+  
+  // Create a floating panel in VR space
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const context = canvas.getContext('2d');
+  context.fillStyle = 'rgba(0,0,0,0.8)';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = 'white';
+  context.font = '24px Arial';
+  context.textAlign = 'center';
+  
+  // Split message lines and draw text
+  const lines = message.split('\n');
+  const lineHeight = 36;
+  lines.forEach((line, i) => {
+    context.fillText(line, canvas.width/2, 60 + i * lineHeight);
+  });
+  
+  // Create texture and panel
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.MeshBasicMaterial({ 
+    map: texture,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const geometry = new THREE.PlaneGeometry(1, 0.5);
+  const panel = new THREE.Mesh(geometry, material);
+  
+  // Position the panel in front of the user
+  panel.position.set(0, 1.4, -1.5);
+  panel.name = 'instructions-panel';
+  scene.add(panel);
+  
+  // Remove after a delay
+  setTimeout(() => {
+    scene.remove(panel);
+    panel.material.dispose();
+    panel.geometry.dispose();
+  }, 10000);
+}
 
 /**
  * Recursively dispose every geometry & material in a group.
@@ -123,8 +379,6 @@ function disposeMeshGroup(group) {
   });
 }
 
-
-
 function calculateCameraDistance(polytope, isMobile) {
   const center = polytope.center || [0, 0, 0];
   let maxD = 1;
@@ -142,6 +396,8 @@ function calculateCameraDistance(polytope, isMobile) {
 function updatePolytope(reset = true) {
   //Preserve existing rotation (if any)
   const oldRotation = meshGroup ? meshGroup.rotation.clone() : null;
+  const oldPosition = meshGroup ? meshGroup.position.clone() : null;
+  const oldScale = meshGroup ? meshGroup.scale.clone() : null;
 
   // remove old group
   if (meshGroup) {
@@ -154,9 +410,11 @@ function updatePolytope(reset = true) {
   meshGroup = buildMesh(appState.currentPolytope, appState.settings);
   scene.add(meshGroup);
 
-  // Restore previous rotation if available
-  if (oldRotation) {
-    meshGroup.rotation.copy(oldRotation);
+  // Restore previous transforms if available and not resetting
+  if (!reset) {
+    if (oldRotation) meshGroup.rotation.copy(oldRotation);
+    if (oldPosition) meshGroup.position.copy(oldPosition);
+    if (oldScale) meshGroup.scale.copy(oldScale);
   }
 
   // apply render mode if not wireframe
@@ -211,9 +469,12 @@ function updatePolytope(reset = true) {
     );
     cameraControls.setTarget(center[0], center[1], center[2], true);
     cameraControls.rotate(Math.PI / 7, -Math.PI / 6, true);
+    
+    // Reset the mesh group position and scale
+    meshGroup.position.set(0, 0, 0);
+    meshGroup.scale.set(1, 1, 1);
   }
 }
-
 
 function updateSettings(key, value) {
   switch (key) {
@@ -234,7 +495,6 @@ function updateSettings(key, value) {
       break;
   }
 }
-
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -318,15 +578,19 @@ export function setupScene(state) {
   renderer.setAnimationLoop(function() {
     // This will be used when in VR mode
     if (renderer.xr.isPresenting) {
+      // Process VR controller interactions
+      updateVRInteractions();
+      
       // Auto-rotate can still work in VR if desired
       if (appState.settings.animation && meshGroup) {
         meshGroup.rotation.y += 0.002; // slower rotation in VR
       }
+      
       renderer.render(scene, camera);
     }
   });
   
-  // Create VR button (simple built-in implementation)
+  // Create VR button
   createVRButton(renderer);
 
   // expose to state
