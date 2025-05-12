@@ -269,8 +269,6 @@ function downloadTextFile(content, filename) {
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
-
-
 /**
  * Export the current polytope as GLTF/GLB format
  * @param {THREE.WebGLRenderer} renderer - The Three.js renderer
@@ -295,6 +293,25 @@ export function exportToGLTF(renderer, scene, polytope, binary = true) {
         // Clone the scene to avoid modifying the original
         const exportScene = scene.clone();
         
+        // Fix duplicate names by ensuring each object has a unique name
+        const usedNames = new Set();
+        exportScene.traverse(object => {
+          if (!object.name || object.name === '') {
+            object.name = `Object_${Math.floor(Math.random() * 100000)}`;
+          }
+          
+          if (usedNames.has(object.name)) {
+            // Add a unique suffix to duplicate names
+            let newName = `${object.name}_${Math.floor(Math.random() * 100000)}`;
+            while (usedNames.has(newName)) {
+              newName = `${object.name}_${Math.floor(Math.random() * 100000)}`;
+            }
+            object.name = newName;
+          }
+          
+          usedNames.add(object.name);
+        });
+        
         // Options for the exporter
         const options = {
           binary: binary,
@@ -302,7 +319,8 @@ export function exportToGLTF(renderer, scene, polytope, binary = true) {
           onlyVisible: true, // Only export visible objects
           truncateDrawRange: true, // Truncate draw range to used attribute values
           animations: [], // No animations
-          embedImages: true // Embed any textures
+          embedImages: true, // Embed any textures
+          forceIndices: true // Make sure we have proper indices
         };
         
         // Perform the export
