@@ -1,4 +1,4 @@
-// File: src/render/sceneManager.js (with VR and controller interactions)
+// File: src/render/sceneManager.js (with Meta Quest-optimized controls)
 
 import * as THREE from '../../vendor/three.module.js';
 import CameraControls from '../../vendor/camera-controls/camera-controls.module.js';
@@ -15,13 +15,17 @@ const clock = new THREE.Clock();
 
 // VR interaction state
 const vrInteraction = {
-  rotating: false,
-  scaling: false,
-  panning: false,
-  lastPosition1: new THREE.Vector3(),
-  lastPosition2: new THREE.Vector3(),
+  grabbed: false,
+  grabbing: false,
+  lastPosition: new THREE.Vector3(),
+  lastRotation: new THREE.Euler(),
   initialDistance: 0,
-  initialScale: 1
+  initialScale: 1,
+  // Store thumbstick state
+  thumbstick: {
+    lastValue: 0,
+    zoomSpeed: 0.1
+  }
 };
 
 // Create a simple controller representation
@@ -43,16 +47,34 @@ function createControllerModel() {
   const pointer = new THREE.Mesh(pointerGeometry, pointerMaterial);
   mesh.add(pointer);
   
-  // Add grip
-  const gripGeometry = new THREE.SphereGeometry(0.025, 16, 16);
-  const gripMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x2196f3,
+  // Add trigger area visualization
+  const triggerGeometry = new THREE.SphereGeometry(0.012, 16, 16);
+  const triggerMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0xff5722,
     roughness: 0.3,
     metalness: 0.8
   });
-  const grip = new THREE.Mesh(gripGeometry, gripMaterial);
-  grip.position.y = 0.04; // Offset from controller center
-  mesh.add(grip);
+  const trigger = new THREE.Mesh(triggerGeometry, triggerMaterial);
+  trigger.position.y = -0.02; // Position at trigger location
+  trigger.position.z = 0.02;
+  mesh.add(trigger);
+  
+  // Add thumbstick visualization
+  const thumbstickBase = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.015, 0.015, 0.01, 16),
+    new THREE.MeshStandardMaterial({ color: 0x444444 })
+  );
+  thumbstickBase.rotation.x = Math.PI/2;
+  thumbstickBase.position.set(0, 0.02, 0.03);
+  mesh.add(thumbstickBase);
+  
+  const thumbstickHead = new THREE.Mesh(
+    new THREE.SphereGeometry(0.007, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0x2196f3 })
+  );
+  thumbstickHead.position.set(0, 0.02, 0.03); // Will be updated when thumbstick moves
+  mesh.add(thumbstickHead);
+  mesh.userData.thumbstickHead = thumbstickHead; // Store reference for animation
   
   return mesh;
 }
@@ -64,8 +86,8 @@ function setupVRControllers(renderer, scene) {
   controller1.userData.index = 0;
   controller1.addEventListener('selectstart', onSelectStart);
   controller1.addEventListener('selectend', onSelectEnd);
-  controller1.addEventListener('squeezestart', onSqueezeStart);
-  controller1.addEventListener('squeezeend', onSqueezeEnd);
+  controller1.addEventListener('connected', onControllerConnected);
+  controller1.addEventListener('disconnected', onControllerDisconnected);
   scene.add(controller1);
   
   // Controller 2
@@ -73,8 +95,8 @@ function setupVRControllers(renderer, scene) {
   controller2.userData.index = 1;
   controller2.addEventListener('selectstart', onSelectStart);
   controller2.addEventListener('selectend', onSelectEnd);
-  controller2.addEventListener('squeezestart', onSqueezeStart);
-  controller2.addEventListener('squeezeend', onSqueezeEnd);
+  controller2.addEventListener('connected', onControllerConnected);
+  controller2.addEventListener('disconnected', onControllerDisconnected);
   scene.add(controller2);
   
   // Add visual models for the controllers
@@ -86,123 +108,104 @@ function setupVRControllers(renderer, scene) {
   return { controller1, controller2 };
 }
 
-// Handle controller select (primary button) press - rotate
+// Handle controller connection
+function onControllerConnected(event) {
+  const controller = event.target;
+  console.log(`Controller ${controller.userData.index} connected:`, event.data);
+  
+  // Store gamepad reference for accessing thumbstick data
+  controller.userData.gamepad = event.data.gamepad;
+}
+
+// Handle controller disconnection
+function onControllerDisconnected(event) {
+  const controller = event.target;
+  console.log(`Controller ${controller.userData.index} disconnected`);
+  controller.userData.gamepad = null;
+}
+
+// Handle trigger press - grab for rotation
 function onSelectStart(event) {
   const controller = event.target;
-  vrInteraction.rotating = true;
+  vrInteraction.grabbed = true;
+  vrInteraction.grabController = controller;
   
-  // Record current position for rotation reference
-  controller.getWorldPosition(vrInteraction.lastPosition1);
-  console.log(`Controller ${controller.userData.index} select start`);
+  // Record current position and rotation for reference
+  controller.getWorldPosition(vrInteraction.lastPosition);
+  if (meshGroup) {
+    vrInteraction.lastRotation.copy(meshGroup.rotation);
+  }
+  
+  console.log(`Controller ${controller.userData.index} grab start`);
 }
 
 function onSelectEnd(event) {
-  vrInteraction.rotating = false;
-  console.log(`Controller ${event.target.userData.index} select end`);
-}
-
-// Handle controller squeeze (grip button) press - pan/zoom
-function onSqueezeStart(event) {
-  const controller = event.target;
-  
-  if (controller.userData.index === 0) {
-    controller1.getWorldPosition(vrInteraction.lastPosition1);
-  } else {
-    controller2.getWorldPosition(vrInteraction.lastPosition2);
-  }
-  
-  // If both controllers are squeezing, enter scaling (zoom) mode
-  if (controller1.userData.squeezing && controller2.userData.squeezing) {
-    vrInteraction.scaling = true;
-    
-    // Calculate initial distance between controllers
-    const pos1 = new THREE.Vector3();
-    const pos2 = new THREE.Vector3();
-    controller1.getWorldPosition(pos1);
-    controller2.getWorldPosition(pos2);
-    vrInteraction.initialDistance = pos1.distanceTo(pos2);
-    
-    // Record initial scale
-    vrInteraction.initialScale = meshGroup.scale.x;
-  } else {
-    // Single controller squeeze = pan
-    vrInteraction.panning = true;
-  }
-  
-  controller.userData.squeezing = true;
-  console.log(`Controller ${controller.userData.index} squeeze start`);
-}
-
-function onSqueezeEnd(event) {
-  const controller = event.target;
-  controller.userData.squeezing = false;
-  
-  // Reset interaction states if needed
-  if (controller1 && controller2 && 
-      !controller1.userData.squeezing && !controller2.userData.squeezing) {
-    vrInteraction.panning = false;
-    vrInteraction.scaling = false;
-  }
-  
-  console.log(`Controller ${controller.userData.index} squeeze end`);
+  vrInteraction.grabbed = false;
+  vrInteraction.grabController = null;
+  console.log(`Controller ${event.target.userData.index} grab end`);
 }
 
 // Process controller interactions
 function updateVRInteractions() {
-  if (!meshGroup || !controller1 || !controller2) return;
+  if (!meshGroup) return;
   
-  // Get current controller positions
-  const currentPos1 = new THREE.Vector3();
-  const currentPos2 = new THREE.Vector3();
-  controller1.getWorldPosition(currentPos1);
-  controller2.getWorldPosition(currentPos2);
-  
-  // ROTATION (select button)
-  if (vrInteraction.rotating) {
-    // Calculate movement direction
-    const movement = new THREE.Vector3().subVectors(currentPos1, vrInteraction.lastPosition1);
+  // GRAB & ROTATE (trigger button)
+  if (vrInteraction.grabbed && vrInteraction.grabController) {
+    const controller = vrInteraction.grabController;
+    
+    // Get current controller position
+    const currentPosition = new THREE.Vector3();
+    controller.getWorldPosition(currentPosition);
+    
+    // Calculate movement delta
+    const delta = new THREE.Vector3().subVectors(currentPosition, vrInteraction.lastPosition);
     
     // Apply rotation based on controller movement
-    meshGroup.rotation.y += movement.x * 2; // Horizontal movement = Y rotation
-    meshGroup.rotation.x += movement.y * 2; // Vertical movement = X rotation
+    // Horizontal movement (left/right) controls Y rotation
+    meshGroup.rotation.y += delta.x * 3;
     
-    // Update last position
-    vrInteraction.lastPosition1.copy(currentPos1);
+    // Vertical movement (up/down) controls X rotation
+    meshGroup.rotation.x += delta.y * 3;
+    
+    // Update position for next frame
+    vrInteraction.lastPosition.copy(currentPosition);
   }
   
-  // SCALING/ZOOMING (both grip buttons)
-  if (vrInteraction.scaling) {
-    // Calculate current distance between controllers
-    const currentDistance = currentPos1.distanceTo(currentPos2);
+  // THUMBSTICK ZOOM (left controller thumbstick Y-axis)
+  // Check if controller1 gamepad is available
+  if (controller1 && controller1.userData.gamepad) {
+    const gamepad = controller1.userData.gamepad;
     
-    // Calculate scale factor based on how controllers are moving
-    const scaleFactor = currentDistance / vrInteraction.initialDistance;
-    
-    // Apply scaling
-    const newScale = vrInteraction.initialScale * scaleFactor;
-    meshGroup.scale.set(newScale, newScale, newScale);
-  }
-  
-  // PANNING (single grip button)
-  if (vrInteraction.panning && !vrInteraction.scaling) {
-    // Only use active controller
-    const activeController = controller1.userData.squeezing ? controller1 : controller2;
-    const lastPos = controller1.userData.squeezing ? vrInteraction.lastPosition1 : vrInteraction.lastPosition2;
-    const currentPos = controller1.userData.squeezing ? currentPos1 : currentPos2;
-    
-    // Calculate movement vector
-    const movement = new THREE.Vector3().subVectors(currentPos, lastPos);
-    
-    // Apply movement to mesh position
-    meshGroup.position.add(movement.multiplyScalar(2));
-    
-    // Update last position
-    if (controller1.userData.squeezing) {
-      vrInteraction.lastPosition1.copy(currentPos1);
-    } else {
-      vrInteraction.lastPosition2.copy(currentPos2);
+    // Get thumbstick Y value (up/down)
+    // Gamepad axes typically have: [left stick X, left stick Y, right stick X, right stick Y]
+    if (gamepad.axes.length >= 2) {
+      const thumbstickY = gamepad.axes[1]; // Y-axis of left thumbstick
+      
+      // Only respond to significant thumbstick movement
+      if (Math.abs(thumbstickY) > 0.1) {
+        // Apply zoom based on thumbstick position
+        // Push forward (negative Y) to zoom in, pull back (positive Y) to zoom out
+        const scaleFactor = 1 + (thumbstickY * vrInteraction.thumbstick.zoomSpeed);
+        meshGroup.scale.multiplyScalar(scaleFactor);
+        
+        // Update thumbstick visualization if it exists
+        if (controller1.children[0] && controller1.children[0].userData.thumbstickHead) {
+          const thumbstickHead = controller1.children[0].userData.thumbstickHead;
+          thumbstickHead.position.z = 0.03 - (thumbstickY * 0.01);
+        }
+      } else {
+        // Reset thumbstick visualization
+        if (controller1.children[0] && controller1.children[0].userData.thumbstickHead) {
+          const thumbstickHead = controller1.children[0].userData.thumbstickHead;
+          thumbstickHead.position.z = 0.03;
+        }
+      }
+      
+      vrInteraction.thumbstick.lastValue = thumbstickY;
     }
   }
+  
+  // You could also add right controller thumbstick for other features if needed
 }
 
 // New function to create a simple VR button without needing external files
@@ -263,6 +266,7 @@ function createVRButton(renderer) {
       // Reset polytope position and scale if it was modified in VR
       if (meshGroup) {
         meshGroup.position.set(0, 0, 0);
+        // Reset scale without overriding initial scale
         meshGroup.scale.set(1, 1, 1);
       }
     }
@@ -314,9 +318,9 @@ function createVRButton(renderer) {
 function showVRInstructions() {
   // Create a text geometry to display in VR
   const message = 
-    "VR CONTROLS:\n" +
-    "• TRIGGER: Rotate (point & hold)\n" +
-    "• GRIP: Pan (single) or Zoom (both)";
+    "META QUEST CONTROLS:\n" +
+    "• TRIGGER: Grab to rotate polytope\n" +
+    "• LEFT THUMBSTICK: Zoom in/out";
   
   // Create a floating panel in VR space
   const canvas = document.createElement('canvas');
@@ -602,7 +606,7 @@ export function setupScene(state) {
   // event listeners
   window.addEventListener('resize', onWindowResize);
   state.on('polytopeChanged', () => updatePolytope());
-    state.on('settingsChanged', ({ key ,value}) => updateSettings(key,value));
+  state.on('settingsChanged', ({ key, value }) => updateSettings(key, value));
 
   // initial draw & loop
   updatePolytope();
