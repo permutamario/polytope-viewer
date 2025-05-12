@@ -29,12 +29,12 @@ let state = {};
  * Returns the state object with data, settings, and event methods.
  */
 export function initializeState(polytopeManifest) {
+	window.getState = getState;
     state = {
 	polytopeManifest, // dictionary of {polytopeName, builder_function}
 	currentPolytope: {}, // Polytope.js object which holds the currently built polytope
 	currentBuilder: {}, // The current builder function
 
-	window.getState = getState;
 	// UI & rendering settings with sensible defaults
 	settings: {
 	    animation: false,           // autorotate
