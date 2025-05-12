@@ -34,6 +34,7 @@ export function initializeState(polytopeManifest) {
 	currentPolytope: {}, // Polytope.js object which holds the currently built polytope
 	currentBuilder: {}, // The current builder function
 
+	window.getState = getState;
 	// UI & rendering settings with sensible defaults
 	settings: {
 	    animation: false,           // autorotate
