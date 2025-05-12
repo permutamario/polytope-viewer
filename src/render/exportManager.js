@@ -206,168 +206,69 @@ polytope = Polyhedron(vertices=vertices)
     alert("Error exporting to SageMath. Check console for details.");
   }
 }
-
 /**
- * Export the current polytope as Polymake code
- * @param {Object} polytope - The polytope object with vertices
+ * Export the current polytope as GLTF/GLB format
+ * @param {THREE.WebGLRenderer} renderer - The Three.js renderer
+ * @param {THREE.Scene} scene - The Three.js scene containing the polytope mesh
+ * @param {Object} polytope - The polytope object with vertices and faces
+ * @param {Boolean} binary - Whether to export as binary GLB (true) or JSON GLTF (false)
  */
-export function exportToPolymake(polytope) {
-  if (!polytope || !polytope.vertices || polytope.vertices.length === 0) {
-    console.error("Cannot export: No polytope data available.");
-    alert("Cannot export: No polytope data available.");
+export function exportToGLTF(renderer, scene, polytope, binary = true) {
+  if (!scene || !polytope) {
+    console.error("Cannot export: Scene or polytope not available");
+    alert("Cannot export: Viewer not ready or no polytope loaded");
     return;
   }
   
   try {
-    // Format vertices as a Polymake matrix
-    let verticesStr = "";
-    polytope.vertices.forEach(vertex => {
-      verticesStr += vertex.join(" ") + "\n";
-    });
-    
-    // Create Polymake code
-    const polymakeCode = `# Polymake code to create ${polytope.name} polytope
-
-use application "polytope";
-
-# Define the polytope from its vertices
-my $p = new Polytope(POINTS=>
-  [1 ${verticesStr.replace(/^/gm, "1 ")}]  # Homogeneous coordinates (prepend 1)
-);
-
-# Print basic information
-print "Polytope: ${polytope.name}\\n";
-print "Dimension: ", $p->DIM, "\\n";
-print "Number of vertices: ", $p->N_VERTICES, "\\n";
-print "F-vector: ", $p->F_VECTOR, "\\n";
-
-# Uncomment to visualize
-# $p->VISUAL;
-`;
-    
-    // Create and trigger download
-    downloadTextFile(polymakeCode, `${polytope.name.toLowerCase().replace(/\s+/g, '_')}_polymake.pl`);
-  } catch (error) {
-    console.error("Failed to export polytope to Polymake:", error);
-    alert("Error exporting to Polymake. Check console for details.");
-  }
-}
-
-/**
- * Helper function to download text content as a file
- * @param {string} content - The text content to download
- * @param {string} filename - The name of the file
- */
-function downloadTextFile(content, filename) {
-  const blob = new Blob([content], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 100);
-}/**
- * Alternative approach to export the polytope directly using a new THREE.js scene
- * This avoids issues with duplicate names and complex scene hierarchies
- * @param {Object} state - The application state containing the polytope and renderer
- * @param {Boolean} binary - Whether to export as binary GLB (true) or JSON GLTF (false)
- */
-window.exportGLTFAlt = function(binary = true) {
-  try {
-    const state = window.polytope_viewer_state;
-    if (!state || !state.currentPolytope) {
-      console.error("Cannot export: No polytope available");
-      return;
-    }
-    
-    // Create a new temporary scene just for export
-    const THREE = window.THREE; // Get THREE from window
-    if (!THREE) {
-      console.error("THREE.js not found in global scope");
-      return;
-    }
-    
-    // Import GLTFExporter dynamically
+    // Import GLTFExporter dynamically (it's part of Three.js examples)
     import('../../vendor/three.js/examples/jsm/exporters/GLTFExporter.js')
       .then(({ GLTFExporter }) => {
-        const tempScene = new THREE.Scene();
-        tempScene.name = "PolytopeExport";
+        // Create a new exporter
+        const exporter = new GLTFExporter();
         
-        // Create a group to hold the polytope
-        const group = new THREE.Group();
-        group.name = state.currentPolytope.name;
+        // Clone the scene to avoid modifying the original
+        const exportScene = scene.clone();
         
-        // Access vertices and faces from the polytope
-        const { vertices, faces } = state.currentPolytope;
-        
-        // Create a mesh for each face with proper naming
-        faces.forEach((faceIndices, faceIndex) => {
-          // Get the color for this face
-          const colorScheme = state.settings.colorScheme;
-          const color = colorScheme[faceIndex % colorScheme.length];
-          
-          // Create a material
-          const material = new THREE.MeshStandardMaterial({
-            color: color,
-            flatShading: true,
-            side: THREE.DoubleSide
-          });
-          material.name = `Material_${faceIndex}`;
-          
-          // Create geometry for this face
-          const geometry = new THREE.BufferGeometry();
-          
-          // Create vertices array from face indices
-          const positions = [];
-          faceIndices.forEach(vertexIndex => {
-            const vertex = vertices[vertexIndex];
-            positions.push(vertex[0], vertex[1], vertex[2]);
-          });
-          
-          // Create triangulation indices (simple fan triangulation)
-          const indices = [];
-          for (let i = 1; i < faceIndices.length - 1; i++) {
-            indices.push(0, i, i + 1);
+        // Fix duplicate names by ensuring each object has a unique name
+        const usedNames = new Set();
+        exportScene.traverse(object => {
+          if (!object.name || object.name === '') {
+            object.name = `Object_${Math.floor(Math.random() * 100000)}`;
           }
           
-          // Set attributes
-          geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-          geometry.setIndex(indices);
-          geometry.computeVertexNormals();
-          geometry.name = `Geometry_${faceIndex}`;
+          if (usedNames.has(object.name)) {
+            // Add a unique suffix to duplicate names
+            let newName = `${object.name}_${Math.floor(Math.random() * 100000)}`;
+            while (usedNames.has(newName)) {
+              newName = `${object.name}_${Math.floor(Math.random() * 100000)}`;
+            }
+            object.name = newName;
+          }
           
-          // Create mesh
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.name = `Face_${faceIndex}`;
-          
-          // Add to group
-          group.add(mesh);
+          usedNames.add(object.name);
         });
         
-        // Add the group to the scene
-        tempScene.add(group);
-        
-        // Set up exporter with options
-        const exporter = new GLTFExporter();
+        // Options for the exporter
         const options = {
           binary: binary,
-          truncateDrawRange: true,
-          embedImages: true,
-          forceIndices: true
+          trs: false, // Don't decompose matrices
+          onlyVisible: true, // Only export visible objects
+          truncateDrawRange: true, // Truncate draw range to used attribute values
+          animations: [], // No animations
+          embedImages: true, // Embed any textures
+          forceIndices: true // Make sure we have proper indices
         };
         
-        // Export the scene
+        // Perform the export
         exporter.parse(
-          tempScene,
+          exportScene, 
           (result) => {
-            // Handle successful export
             const fileType = binary ? 'model/gltf-binary' : 'model/gltf+json';
             const extension = binary ? 'glb' : 'gltf';
-            const fileName = `${state.currentPolytope.name.toLowerCase().replace(/\s+/g, '_')}.${extension}`;
+            const fileName = `${polytope.name.toLowerCase().replace(/\s+/g, '_')}.${extension}`;
             
-            // Create blob and download
+            // Convert to blob and trigger download
             const blob = new Blob([binary ? result : JSON.stringify(result)], { type: fileType });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -376,37 +277,43 @@ window.exportGLTFAlt = function(binary = true) {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            document.body.removeChild(link);
             
-            // Clean up
+            // Clean up the URL object
             setTimeout(() => URL.revokeObjectURL(url), 100);
-            console.log(`Successfully exported polytope to ${extension.toUpperCase()}`);
             
-            // Clean up temporary objects
-            tempScene.traverse(object => {
-              if (object.geometry) object.geometry.dispose();
-              if (object.material) {
-                if (Array.isArray(object.material)) {
-                  object.material.forEach(m => m.dispose());
-                } else {
-                  object.material.dispose();
-                }
-              }
-            });
+            console.log(`Successfully exported polytope to ${extension.toUpperCase()}`);
           },
           (error) => {
             console.error('Error during GLTF export:', error);
+            alert(`Error exporting to ${binary ? 'GLB' : 'GLTF'}: ${error.message || 'Unknown error'}`);
           },
           options
         );
       })
       .catch(error => {
         console.error('Failed to load GLTFExporter:', error);
+        alert(`Error: GLTFExporter module could not be loaded. Make sure three.js examples are available.`);
       });
   } catch (error) {
-    console.error("Failed to export polytope:", error);
+    console.error("Failed to export polytope to GLTF:", error);
+    alert("Error exporting to GLTF. Check console for details.");
   }
+}
+
+/**
+ * Simple console command to export the current polytope as GLTF/GLB
+ * Usage: exportGLTF() or exportGLTF(false) for GLTF format
+ */
+window.exportGLTF = function(binary = true) {
+  const state = window.polytope_viewer_state;
+  if (!state) {
+    console.error("Polytope viewer state not found. Make sure the viewer is initialized.");
+    return;
+  }
+  
+  exportToGLTF(state.renderer, state.scene, state.currentPolytope, binary);
+  console.log(`Exporting ${state.currentPolytope.name} as ${binary ? 'GLB' : 'GLTF'}...`);
 };
 
-// Add a console message to inform about the alternative export method
-console.log("Alternative GLTF export method available via exportGLTFAlt(). Try this if the standard export fails.");
+// Add export function to exportManager.js exports
+export { exportToGLTF };
