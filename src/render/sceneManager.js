@@ -1,4 +1,4 @@
-// File: src/render/sceneManager.js
+// File: src/render/sceneManager.js (modified with minimal VR support)
 
 import * as THREE from '../../vendor/three.module.js';
 import CameraControls from '../../vendor/camera-controls/camera-controls.module.js';
@@ -10,6 +10,97 @@ CameraControls.install({ THREE });
 
 let renderer, scene, camera, cameraControls, meshGroup, appState;
 const clock = new THREE.Clock();
+
+// New function to create a simple VR button without needing external files
+function createVRButton(renderer) {
+  // Only create button if WebXR is supported
+  if ('xr' in navigator) {
+    const vrButton = document.createElement('button');
+    vrButton.id = 'vr-button';
+    vrButton.style.cssText = `
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      z-index: 999;
+      font-family: sans-serif;
+    `;
+    vrButton.textContent = 'ENTER VR';
+    
+    let xrSession = null;
+    
+    // Handle starting VR session
+    async function onSessionStarted(session) {
+      session.addEventListener('end', onSessionEnded);
+      await renderer.xr.setSession(session);
+      vrButton.textContent = 'EXIT VR';
+      xrSession = session;
+      
+      // Disable regular controls in VR
+      if (cameraControls) {
+        cameraControls.enabled = false;
+      }
+    }
+    
+    // Handle ending VR session
+    function onSessionEnded() {
+      xrSession.removeEventListener('end', onSessionEnded);
+      vrButton.textContent = 'ENTER VR';
+      xrSession = null;
+      
+      // Re-enable regular controls
+      if (cameraControls) {
+        cameraControls.enabled = true;
+      }
+    }
+    
+    // Handle button click
+    vrButton.onclick = function() {
+      if (xrSession === null) {
+        // Request a VR session
+        const sessionInit = { optionalFeatures: ['local-floor', 'bounded-floor'] };
+        navigator.xr.requestSession('immersive-vr', sessionInit)
+          .then(onSessionStarted)
+          .catch(error => {
+            console.error('Failed to start VR session:', error);
+            alert('Could not start VR session. VR might not be supported by your browser or device.');
+          });
+      } else {
+        // End the current session
+        xrSession.end();
+      }
+    };
+    
+    // Check if VR is supported
+    navigator.xr.isSessionSupported('immersive-vr')
+      .then(supported => {
+        if (!supported) {
+          vrButton.textContent = 'VR NOT SUPPORTED';
+          vrButton.disabled = true;
+          vrButton.style.backgroundColor = '#888';
+          vrButton.style.cursor = 'not-allowed';
+        }
+      })
+      .catch(error => {
+        console.error('Error checking VR support:', error);
+        vrButton.textContent = 'VR ERROR';
+        vrButton.disabled = true;
+        vrButton.style.backgroundColor = '#888';
+      });
+    
+    document.body.appendChild(vrButton);
+    return vrButton;
+  }
+  
+  return null;
+}
 
 
 /**
@@ -124,8 +215,6 @@ function updatePolytope(reset = true) {
 }
 
 
-
-
 function updateSettings(key, value) {
   switch (key) {
     case 'showEdges':
@@ -154,17 +243,24 @@ function onWindowResize() {
 }
 
 function animate() {
-  requestAnimationFrame(animate);
+  // Use requestAnimationFrame only if not in VR
+  if (!renderer.xr.isPresenting) {
+    requestAnimationFrame(animate);
+  }
+  
   const delta = clock.getDelta();
 
-  cameraControls.update(delta);
+  // Only update controls if not in VR
+  if (!renderer.xr.isPresenting) {
+    cameraControls.update(delta);
 
-  // Auto-rotate the mesh group if enabled
-  if (appState.settings.animation && meshGroup) {
-    meshGroup.rotation.y += 0.2 * delta; // adjust rotation speed as needed
+    // Auto-rotate the mesh group if enabled
+    if (appState.settings.animation && meshGroup) {
+      meshGroup.rotation.y += 0.2 * delta; // adjust rotation speed as needed
+    }
+    
+    renderer.render(scene, camera);
   }
-
-  renderer.render(scene, camera);
 }
 
 export function setupScene(state) {
@@ -214,6 +310,24 @@ export function setupScene(state) {
   cameraControls.touches.three = CameraControls.ACTION.TOUCH_OFFSET;
   cameraControls.minPolarAngle = -Infinity;
   cameraControls.maxPolarAngle = Infinity;
+  
+  // Enable WebXR
+  renderer.xr.enabled = true;
+  
+  // Set up VR animation loop (required for WebXR)
+  renderer.setAnimationLoop(function() {
+    // This will be used when in VR mode
+    if (renderer.xr.isPresenting) {
+      // Auto-rotate can still work in VR if desired
+      if (appState.settings.animation && meshGroup) {
+        meshGroup.rotation.y += 0.002; // slower rotation in VR
+      }
+      renderer.render(scene, camera);
+    }
+  });
+  
+  // Create VR button (simple built-in implementation)
+  createVRButton(renderer);
 
   // expose to state
   state.renderer       = renderer;
