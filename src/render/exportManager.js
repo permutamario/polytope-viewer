@@ -303,7 +303,7 @@ window.exportGLTF = function(binary = true) {
     console.log("Scene children count:", state.scene.children.length);
     
     // Import the GLTFExporter
-    import('../../vendor/examples/jsm/exporters/GLTFExporter.js')
+    import('../../vendor/GLTFExporter.js')
       .then(({ GLTFExporter }) => {
         // Create a new exporter
         const exporter = new GLTFExporter();
