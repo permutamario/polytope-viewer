@@ -269,3 +269,96 @@ function downloadTextFile(content, filename) {
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
+
+
+/**
+ * Export the current polytope as GLTF/GLB format
+ * @param {THREE.WebGLRenderer} renderer - The Three.js renderer
+ * @param {THREE.Scene} scene - The Three.js scene containing the polytope mesh
+ * @param {Object} polytope - The polytope object with vertices and faces
+ * @param {Boolean} binary - Whether to export as binary GLB (true) or JSON GLTF (false)
+ */
+export function exportToGLTF(renderer, scene, polytope, binary = true) {
+  if (!scene || !polytope) {
+    console.error("Cannot export: Scene or polytope not available");
+    alert("Cannot export: Viewer not ready or no polytope loaded");
+    return;
+  }
+  
+  try {
+    // Import GLTFExporter dynamically (it's part of Three.js examples)
+    import('../../vendor/three.js/examples/jsm/exporters/GLTFExporter.js')
+      .then(({ GLTFExporter }) => {
+        // Create a new exporter
+        const exporter = new GLTFExporter();
+        
+        // Clone the scene to avoid modifying the original
+        const exportScene = scene.clone();
+        
+        // Options for the exporter
+        const options = {
+          binary: binary,
+          trs: false, // Don't decompose matrices
+          onlyVisible: true, // Only export visible objects
+          truncateDrawRange: true, // Truncate draw range to used attribute values
+          animations: [], // No animations
+          embedImages: true // Embed any textures
+        };
+        
+        // Perform the export
+        exporter.parse(
+          exportScene, 
+          (result) => {
+            const fileType = binary ? 'model/gltf-binary' : 'model/gltf+json';
+            const extension = binary ? 'glb' : 'gltf';
+            const fileName = `${polytope.name.toLowerCase().replace(/\s+/g, '_')}.${extension}`;
+            
+            // Convert to blob and trigger download
+            const blob = new Blob([binary ? result : JSON.stringify(result)], { type: fileType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up the URL object
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+            
+            console.log(`Successfully exported polytope to ${extension.toUpperCase()}`);
+          },
+          (error) => {
+            console.error('Error during GLTF export:', error);
+            alert(`Error exporting to ${binary ? 'GLB' : 'GLTF'}: ${error.message || 'Unknown error'}`);
+          },
+          options
+        );
+      })
+      .catch(error => {
+        console.error('Failed to load GLTFExporter:', error);
+        alert(`Error: GLTFExporter module could not be loaded. Make sure three.js examples are available.`);
+      });
+  } catch (error) {
+    console.error("Failed to export polytope to GLTF:", error);
+    alert("Error exporting to GLTF. Check console for details.");
+  }
+}
+
+/**
+ * Simple console command to export the current polytope as GLTF/GLB
+ * Usage: exportGLTF() or exportGLTF(false) for GLTF format
+ */
+window.exportGLTF = function(binary = true) {
+  const state = window.polytope_viewer_state;
+  if (!state) {
+    console.error("Polytope viewer state not found. Make sure the viewer is initialized.");
+    return;
+  }
+  
+  exportToGLTF(state.renderer, state.scene, state.currentPolytope, binary);
+  console.log(`Exporting ${state.currentPolytope.name} as ${binary ? 'GLB' : 'GLTF'}...`);
+};
+
+// Add export function to exportManager.js exports
+export { exportToGLTF };
