@@ -487,7 +487,7 @@ window.exportPolytopeModel = function(binary = true) {
     scene.add(group);
     
     // Dynamic import of GLTFExporter
-    import('../../vendor/three.js/examples/jsm/exporters/GLTFExporter.js')
+    import('../../vendor/examples/jsm/exporters/GLTFExporter.js')
       .then(({ GLTFExporter }) => {
         const exporter = new GLTFExporter();
         
