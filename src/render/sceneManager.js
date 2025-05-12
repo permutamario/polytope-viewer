@@ -1,4 +1,4 @@
-// File: src/render/sceneManager.js (with Meta Quest-optimized controls)
+// File: src/render/sceneManager.js (with Meta Quest camera controls)
 
 import * as THREE from '../../vendor/three.module.js';
 import CameraControls from '../../vendor/camera-controls/camera-controls.module.js';
@@ -13,17 +13,20 @@ let controller1, controller2; // VR controllers
 let controllerGrip1, controllerGrip2; // Controller models
 const clock = new THREE.Clock();
 
+// VR camera rig
+let cameraRig; // Object to hold the camera in VR
+
 // VR interaction state
 const vrInteraction = {
   grabbed: false,
-  grabbing: false,
+  grabController: null,
   lastPosition: new THREE.Vector3(),
-  lastRotation: new THREE.Euler(),
-  initialDistance: 0,
-  initialScale: 1,
+  orbitRadius: 5, // Initial distance from center
+  orbitAngleX: 0, // Horizontal orbit angle
+  orbitAngleY: 0, // Vertical orbit angle
   // Store thumbstick state
   thumbstick: {
-    lastValue: 0,
+    lastValueY: 0,
     zoomSpeed: 0.1
   }
 };
@@ -108,6 +111,48 @@ function setupVRControllers(renderer, scene) {
   return { controller1, controller2 };
 }
 
+// Create camera rig for VR
+function setupVRCameraRig() {
+  // Create a rig to hold the camera
+  cameraRig = new THREE.Group();
+  scene.add(cameraRig);
+  
+  // Move original camera to the rig
+  if (camera.parent) {
+    camera.parent.remove(camera);
+  }
+  
+  // Position the camera at the initial radius
+  camera.position.set(0, 0, vrInteraction.orbitRadius);
+  cameraRig.add(camera);
+  
+  // Make the camera look at origin
+  camera.lookAt(0, 0, 0);
+  
+  // Save initial orbital position
+  updateOrbitPosition();
+  
+  return cameraRig;
+}
+
+// Update orbit camera position based on angles and radius
+function updateOrbitPosition() {
+  // Calculate position on sphere
+  const phi = THREE.MathUtils.degToRad(90 - vrInteraction.orbitAngleY); // Vertical angle
+  const theta = THREE.MathUtils.degToRad(vrInteraction.orbitAngleX); // Horizontal angle
+  
+  // Calculate 3D position using spherical coordinates
+  const x = vrInteraction.orbitRadius * Math.sin(phi) * Math.cos(theta);
+  const y = vrInteraction.orbitRadius * Math.cos(phi);
+  const z = vrInteraction.orbitRadius * Math.sin(phi) * Math.sin(theta);
+  
+  // Update the camera position
+  camera.position.set(x, y, z);
+  
+  // Make camera look at center of scene (origin)
+  camera.lookAt(0, 0, 0);
+}
+
 // Handle controller connection
 function onControllerConnected(event) {
   const controller = event.target;
@@ -124,17 +169,18 @@ function onControllerDisconnected(event) {
   controller.userData.gamepad = null;
 }
 
-// Handle trigger press - grab for rotation
+// Handle trigger press - for orbiting the camera
 function onSelectStart(event) {
   const controller = event.target;
   vrInteraction.grabbed = true;
   vrInteraction.grabController = controller;
   
-  // Record current position and rotation for reference
+  // Record current position for reference
   controller.getWorldPosition(vrInteraction.lastPosition);
-  if (meshGroup) {
-    vrInteraction.lastRotation.copy(meshGroup.rotation);
-  }
+  
+  // Save current orbit angles
+  vrInteraction.lastOrbitAngleX = vrInteraction.orbitAngleX;
+  vrInteraction.lastOrbitAngleY = vrInteraction.orbitAngleY;
   
   console.log(`Controller ${controller.userData.index} grab start`);
 }
@@ -145,11 +191,9 @@ function onSelectEnd(event) {
   console.log(`Controller ${event.target.userData.index} grab end`);
 }
 
-// Process controller interactions
+// Process controller interactions for the camera
 function updateVRInteractions() {
-  if (!meshGroup) return;
-  
-  // GRAB & ROTATE (trigger button)
+  // TRIGGER: ORBIT CAMERA (trigger button)
   if (vrInteraction.grabbed && vrInteraction.grabController) {
     const controller = vrInteraction.grabController;
     
@@ -160,19 +204,25 @@ function updateVRInteractions() {
     // Calculate movement delta
     const delta = new THREE.Vector3().subVectors(currentPosition, vrInteraction.lastPosition);
     
-    // Apply rotation based on controller movement
-    // Horizontal movement (left/right) controls Y rotation
-    meshGroup.rotation.y += delta.x * 3;
+    // Apply rotation to orbit angles
+    // Horizontal movement (left/right) controls horizontal orbit
+    vrInteraction.orbitAngleX += delta.x * 150;
     
-    // Vertical movement (up/down) controls X rotation
-    meshGroup.rotation.x += delta.y * 3;
+    // Vertical movement (up/down) controls vertical orbit
+    vrInteraction.orbitAngleY += delta.y * 150;
+    
+    // Limit vertical rotation to avoid flipping
+    vrInteraction.orbitAngleY = THREE.MathUtils.clamp(vrInteraction.orbitAngleY, -85, 85);
+    
+    // Update camera position
+    updateOrbitPosition();
     
     // Update position for next frame
     vrInteraction.lastPosition.copy(currentPosition);
   }
   
-  // THUMBSTICK ZOOM (left controller thumbstick Y-axis)
-  // Check if controller1 gamepad is available
+  // THUMBSTICK: ZOOM IN/OUT (left controller thumbstick Y-axis)
+  // This moves the camera closer or further from the center point
   if (controller1 && controller1.userData.gamepad) {
     const gamepad = controller1.userData.gamepad;
     
@@ -183,10 +233,16 @@ function updateVRInteractions() {
       
       // Only respond to significant thumbstick movement
       if (Math.abs(thumbstickY) > 0.1) {
-        // Apply zoom based on thumbstick position
-        // Push forward (negative Y) to zoom in, pull back (positive Y) to zoom out
-        const scaleFactor = 1 + (thumbstickY * vrInteraction.thumbstick.zoomSpeed);
-        meshGroup.scale.multiplyScalar(scaleFactor);
+        // Change orbit radius based on thumbstick
+        // Push up (negative Y) to zoom in, pull down (positive Y) to zoom out
+        const zoomAmount = thumbstickY * 0.1;
+        vrInteraction.orbitRadius += zoomAmount;
+        
+        // Enforce minimum and maximum zoom
+        vrInteraction.orbitRadius = THREE.MathUtils.clamp(vrInteraction.orbitRadius, 1, 20);
+        
+        // Update camera position
+        updateOrbitPosition();
         
         // Update thumbstick visualization if it exists
         if (controller1.children[0] && controller1.children[0].userData.thumbstickHead) {
@@ -201,7 +257,7 @@ function updateVRInteractions() {
         }
       }
       
-      vrInteraction.thumbstick.lastValue = thumbstickY;
+      vrInteraction.thumbstick.lastValueY = thumbstickY;
     }
   }
   
@@ -240,6 +296,9 @@ function createVRButton(renderer) {
       vrButton.textContent = 'EXIT VR';
       xrSession = session;
       
+      // Set up VR camera rig
+      setupVRCameraRig();
+      
       // Set up controllers when entering VR
       setupVRControllers(renderer, scene);
       
@@ -258,16 +317,30 @@ function createVRButton(renderer) {
       vrButton.textContent = 'ENTER VR';
       xrSession = null;
       
+      // Reset camera
+      if (cameraRig && camera) {
+        // Remove camera from rig
+        cameraRig.remove(camera);
+        scene.add(camera);
+        
+        // Reset camera position
+        const center = appState.currentPolytope.center || [0, 0, 0];
+        const distance = calculateCameraDistance(
+          appState.currentPolytope,
+          detectPlatform()
+        );
+        camera.position.set(
+          center[0],
+          center[1],
+          center[2] + 1.2 * distance
+        );
+        camera.lookAt(center[0], center[1], center[2]);
+      }
+      
       // Re-enable regular controls
       if (cameraControls) {
         cameraControls.enabled = true;
-      }
-      
-      // Reset polytope position and scale if it was modified in VR
-      if (meshGroup) {
-        meshGroup.position.set(0, 0, 0);
-        // Reset scale without overriding initial scale
-        meshGroup.scale.set(1, 1, 1);
+        cameraControls.update(0);
       }
     }
     
@@ -319,7 +392,7 @@ function showVRInstructions() {
   // Create a text geometry to display in VR
   const message = 
     "META QUEST CONTROLS:\n" +
-    "• TRIGGER: Grab to rotate polytope\n" +
+    "• TRIGGER: Grab to orbit the camera\n" +
     "• LEFT THUMBSTICK: Zoom in/out";
   
   // Create a floating panel in VR space
@@ -400,8 +473,6 @@ function calculateCameraDistance(polytope, isMobile) {
 function updatePolytope(reset = true) {
   //Preserve existing rotation (if any)
   const oldRotation = meshGroup ? meshGroup.rotation.clone() : null;
-  const oldPosition = meshGroup ? meshGroup.position.clone() : null;
-  const oldScale = meshGroup ? meshGroup.scale.clone() : null;
 
   // remove old group
   if (meshGroup) {
@@ -414,11 +485,9 @@ function updatePolytope(reset = true) {
   meshGroup = buildMesh(appState.currentPolytope, appState.settings);
   scene.add(meshGroup);
 
-  // Restore previous transforms if available and not resetting
-  if (!reset) {
-    if (oldRotation) meshGroup.rotation.copy(oldRotation);
-    if (oldPosition) meshGroup.position.copy(oldPosition);
-    if (oldScale) meshGroup.scale.copy(oldScale);
+  // Restore previous rotation if available
+  if (oldRotation) {
+    meshGroup.rotation.copy(oldRotation);
   }
 
   // apply render mode if not wireframe
@@ -474,9 +543,8 @@ function updatePolytope(reset = true) {
     cameraControls.setTarget(center[0], center[1], center[2], true);
     cameraControls.rotate(Math.PI / 7, -Math.PI / 6, true);
     
-    // Reset the mesh group position and scale
-    meshGroup.position.set(0, 0, 0);
-    meshGroup.scale.set(1, 1, 1);
+    // Initialize VR orbit radius based on camera distance
+    vrInteraction.orbitRadius = distance;
   }
 }
 
